@@ -20,7 +20,9 @@ export default function SignupScreen() {
                     <InputElement placeholder="Password" />
                </View>
 
-               <MainButton title="Signup" isFullWidth isDark />
+               <Text style={[mainStyles.normalText]}>Agree to our <Link href={"/_sitemap"}>terms of services</Link></Text>
+
+               <MainButton title="Signup" isFullWidth />
 
                <Text style={[mainStyles.normalText, { color: MainColors["Primary Blue"] }]}>Already have an account? <Link href={"/(auth)/signin"} style={{ color: MainColors["Almost Black"] }}>Signin</Link></Text>
           </View>

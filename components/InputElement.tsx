@@ -25,8 +25,8 @@ const styles = StyleSheet.create({
           width: '100%',
      },
      inputElement: {
-          paddingVertical: 10,
-          fontSize: 15,
+          paddingVertical: 12,
+          fontSize: 16,
           color: MainColors["Almost Black"],
           fontFamily: 'EBGaramond',
           outline: 'none'

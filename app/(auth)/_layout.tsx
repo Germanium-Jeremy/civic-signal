@@ -11,6 +11,12 @@ export default function AuthLayout() {
                     <Stack.Screen name="index" />
                     <Stack.Screen name="signup" />
                     <Stack.Screen name="signin" />
+                    <Stack.Screen name="forgot" />
+                    <Stack.Screen name="verifycode" />
+                    <Stack.Screen name="reset" />
+                    <Stack.Screen name="waiting" />
+                    <Stack.Screen name="verifyaccount" />
+                    <Stack.Screen name="confirmation" />
                </Stack>
           </SafeAreaView>
      )

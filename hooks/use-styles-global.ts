@@ -28,7 +28,7 @@ export const useStylesGlobal = (props?: UseStylesProps) => {
           mainButton: {
                backgroundColor: props?.mainBtn?.isDark ? MainColors["Almost Black"] : MainColors["Primary Blue"],
                borderRadius: 20,
-               paddingVertical: 10,
+               paddingVertical: 15,
                paddingHorizontal: 20,
                alignItems: 'center',
                justifyContent: 'center'
@@ -43,8 +43,8 @@ export const useStylesGlobal = (props?: UseStylesProps) => {
           },
           mainButtonText: {
                color: MainColors["Main Background"],
-               fontSize: 15,
-               fontWeight: 500,
+               fontSize: 18,
+               fontWeight: 800,
                fontFamily: 'EBGaramond',
           },
           subButtonText: {
@@ -61,10 +61,10 @@ export const useStylesGlobal = (props?: UseStylesProps) => {
                color: MainColors["Almost Black"]
           },
           normalText: {
-               fontSize: 15,
+               fontSize: 16,
                fontWeight: 500,
                fontFamily: 'EBGaramond',
                color: MainColors["Almost Black"]
-          }
+          },
      })
 }
