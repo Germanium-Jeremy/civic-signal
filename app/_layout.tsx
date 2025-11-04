@@ -9,7 +9,7 @@ export const unstable_settings = {
 
 export default function RootLayout() {
   const [fontsLoaded] = useFonts({
-    'EBGaramond': require('../assets/fonts/EB_Garamond/static/EBGaramond-Regular.ttf'),
+    'EBGaramond': require('../assets/fonts/EB_Garamond/EBGaramond-VariableFont_wght.ttf'),
   })
 
   if (!fontsLoaded) {
@@ -18,7 +18,7 @@ export default function RootLayout() {
 
   return (
     <Stack>
-      <Stack.Screen name='(auth)' />
+      <Stack.Screen name='(auth)' options={{ headerShown: false }} />
       <StatusBar style="auto" />
     </Stack>
   );
