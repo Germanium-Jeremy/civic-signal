@@ -1,6 +1,6 @@
 import { useStylesGlobal } from "@/hooks/use-styles-global";
 import { Tabs } from "expo-router";
-import { StyleSheet, Text } from "react-native";
+import { Image, StyleSheet, Text, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons"
 import { MainColors } from "@/constants/theme";
@@ -14,7 +14,20 @@ export default function TabLayout() {
                     tabBarStyle: styles.bottonNav,
                     tabBarShowLabel: false,
                     headerShown: true,
-                    
+                    header: (prop) => {
+                         return (
+                              <View style={[styles.header]}>
+                                   <Image source={require("@/assets/images/civicsignal.png")} resizeMode="contain" style={[styles.profileIcon]} />
+
+                                   <Text style={[styles.route]}> {prop.route.name} </Text>
+                                   
+                                   <View style={[styles.bellContainer]}>
+                                        <Ionicons name="notifications" size={30} color={MainColors["Almost Black"]} />
+                                        <View style={[styles.identifier]}></View>
+                                   </View>
+                              </View>
+                         )
+                    }
                }}>
                     <Tabs.Screen name="home" options={{
                          title: 'Home',
@@ -72,5 +85,47 @@ const styles = StyleSheet.create({
           verticalAlign: 'middle',
           fontSize: 40,
           fontWeight: 'bold',
+     },
+     header: {
+          backgroundColor: MainColors["Main Background"],
+          paddingVertical: 5,
+          paddingHorizontal: 30,
+          flexDirection: 'row',
+          justifyContent: 'space-between',
+          alignItems: 'center',
+          borderWidth: .5,
+          borderColor: MainColors["Neutral Gray"]
+     },
+     profileIcon: {
+          width: 50,
+          height: 50,
+          borderRadius: 100,
+          borderWidth: 1,
+          borderColor: MainColors["Accent Green"],
+     },
+     route: {
+          fontWeight: 500,
+          fontFamily: 'EBGaramond',
+          fontSize: 16,
+          fontVariant: ['small-caps'],
+     },
+     bellContainer: {
+          width: 45,
+          height: 45,
+          borderRadius: 100,
+          borderWidth: .5,
+          borderColor: MainColors["Neutral Gray"],
+          justifyContent: 'center',
+          alignItems: 'center',
+          position: 'relative',
+     },
+     identifier: {
+          position: 'absolute',
+          width: 15,
+          height: 15,
+          backgroundColor: MainColors["Error red"],
+          borderRadius: 20,
+          top: 0,
+          right: 0,
      }
 })

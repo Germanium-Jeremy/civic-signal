@@ -68,7 +68,7 @@ export const useStylesGlobal = (props?: UseStylesProps) => {
           },
           tabs: {
                flex: 1,
-               paddingVertical: 10,
+               paddingBottom: 10,
           }
      })
 }
