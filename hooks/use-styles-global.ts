@@ -66,5 +66,9 @@ export const useStylesGlobal = (props?: UseStylesProps) => {
                fontFamily: 'EBGaramond',
                color: MainColors["Almost Black"]
           },
+          tabs: {
+               flex: 1,
+               paddingVertical: 10,
+          }
      })
 }

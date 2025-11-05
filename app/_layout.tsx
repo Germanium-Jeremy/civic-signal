@@ -4,7 +4,7 @@ import { useFonts } from 'expo-font'
 import 'react-native-reanimated';
 
 export const unstable_settings = {
-  anchor: '(auth)',
+  anchor: '(tabs)',
 };
 
 export default function RootLayout() {
@@ -19,6 +19,7 @@ export default function RootLayout() {
   return (
     <Stack>
       <Stack.Screen name='(auth)' options={{ headerShown: false }} />
+      <Stack.Screen name='(tabs)' options={{ headerShown: false }} />
       <StatusBar style="auto" />
     </Stack>
   );
