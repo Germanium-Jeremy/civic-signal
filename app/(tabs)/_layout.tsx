@@ -13,18 +13,43 @@ export default function TabLayout() {
                <Tabs screenOptions={{
                     tabBarStyle: styles.bottonNav,
                     tabBarShowLabel: false,
+                    headerShown: true,
+                    
                }}>
                     <Tabs.Screen name="home" options={{
                          title: 'Home',
-                         tabBarShowLabel: false,
-                         headerShown: true,
-                         tabBarIcon: ({ focused }) => <Ionicons name={focused ? "home-sharp" : "home-outline"} size={30} color={focused ? MainColors["Accent Green"] : MainColors["Main Background"]} />,
+                         tabBarIcon: ({ focused }) => <Ionicons name={focused ? "home-sharp" : "home-outline"}
+                              size={focused ? 30 : 25}
+                              color={focused ? MainColors["Accent Green"] : MainColors["Main Background"]}
+                         />,
                     }} />
-                    <Tabs.Screen name="issue" options={{
+                    <Tabs.Screen name="issues" options={{
                          title: 'Issues',
-                         tabBarShowLabel: false,
-                         headerShown: true,
-                         tabBarIcon: ({ focused }) => <Ionicons name="document-sharp" size={30} />,
+                         tabBarIcon: ({ focused }) => <Ionicons name={focused ? "document-sharp" : "document-outline"}
+                              size={focused ? 30 : 25}
+                              color={focused ? MainColors["Accent Green"] : MainColors["Main Background"]}
+                         />,
+                    }} />
+                    <Tabs.Screen name="report" options={{
+                         title: 'Report',
+                         tabBarIcon: ({ focused }) => <Ionicons name="add"
+                              color={focused ? MainColors["Main Background"] : MainColors["Almost Black"]}
+                              style={[styles.report, { backgroundColor: focused ? MainColors["Accent Green"] : MainColors["Main Background"] }]}
+                         />,
+                    }} />
+                    <Tabs.Screen name="map" options={{
+                         title: 'Map',
+                         tabBarIcon: ({ focused }) => <Ionicons name={focused ? "map-sharp" : "map-outline"}
+                              color={focused ? MainColors["Accent Green"] : MainColors["Main Background"]}
+                              size={focused ? 30 : 25}
+                         />,
+                    }} />
+                    <Tabs.Screen name="profile" options={{
+                         title: 'Profile',
+                         tabBarIcon: ({ focused }) => <Ionicons name={focused ? "person-sharp" : "person-outline"}
+                              color={focused ? MainColors["Accent Green"] : MainColors["Main Background"]}
+                              size={focused ? 30 : 25}
+                         />,
                     }} />
                </Tabs>
           </SafeAreaView>
@@ -36,6 +61,16 @@ const styles = StyleSheet.create({
           marginHorizontal: 20,
           borderRadius: 50,
           paddingHorizontal: 20,
-          backgroundColor: MainColors["Almost Black"]
+          backgroundColor: MainColors["Almost Black"],
+          paddingTop: 5,
+     },
+     report: {
+          borderRadius: 50,
+          width: 47,
+          height: 47,
+          textAlign: 'center',
+          verticalAlign: 'middle',
+          fontSize: 40,
+          fontWeight: 'bold',
      }
 })
