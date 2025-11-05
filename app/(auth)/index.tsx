@@ -23,9 +23,8 @@ export default function OnboardingScreen() {
 const styles = StyleSheet.create({
      civcSignal: {
           fontSize: 30,
-          fontWeight: 'bold',
           textAlign: 'center',
-          fontFamily: 'EBGaramond',
+          fontFamily: 'EBGaramondBold',
           marginBottom: 30,
           marginTop: -20,
      },

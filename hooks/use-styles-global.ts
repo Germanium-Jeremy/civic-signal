@@ -69,6 +69,14 @@ export const useStylesGlobal = (props?: UseStylesProps) => {
           tabs: {
                flex: 1,
                paddingBottom: 10,
+               backgroundColor: MainColors["Main Background"]
+          },
+          pages: {
+               paddingHorizontal: 20,
+               paddingVertical: 30,
+               backgroundColor: MainColors["Main Background"],
+               flex: 1,
+               gap: 20,
           }
      })
 }

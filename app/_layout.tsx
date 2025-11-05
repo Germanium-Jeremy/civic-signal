@@ -10,6 +10,7 @@ export const unstable_settings = {
 export default function RootLayout() {
   const [fontsLoaded] = useFonts({
     'EBGaramond': require('../assets/fonts/EB_Garamond/EBGaramond-VariableFont_wght.ttf'),
+    'EBGaramondBold': require('../assets/fonts/EB_Garamond/static/EBGaramond-Bold.ttf'),
   })
 
   if (!fontsLoaded) {
