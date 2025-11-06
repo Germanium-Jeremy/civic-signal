@@ -73,10 +73,10 @@ export const useStylesGlobal = (props?: UseStylesProps) => {
           },
           pages: {
                paddingHorizontal: 20,
-               paddingVertical: 30,
+               paddingVertical: 20,
                backgroundColor: MainColors["Main Background"],
                flex: 1,
-               gap: 20,
+               gap: 10,
           }
      })
 }

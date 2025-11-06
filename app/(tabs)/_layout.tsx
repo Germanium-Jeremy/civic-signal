@@ -100,8 +100,7 @@ const styles = StyleSheet.create({
           width: 50,
           height: 50,
           borderRadius: 100,
-          borderWidth: 1,
-          borderColor: MainColors["Accent Green"],
+          resizeMode: 'contain',
      },
      route: {
           fontWeight: 500,

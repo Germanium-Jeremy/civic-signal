@@ -1,7 +1,7 @@
 import { MainColors } from "@/constants/theme";
 import { useStylesGlobal } from "@/hooks/use-styles-global";
 import { Ionicons } from "@expo/vector-icons";
-import { FlatList, Image, StyleSheet, Text, View } from "react-native";
+import { FlatList, Image, ScrollView, StyleSheet, Text, View } from "react-native";
 
 const issuesDammy = [
      { id: 1, title: 'This is a title', date: 'This is a date' },
@@ -38,10 +38,10 @@ export default function HomeScreen() {
      const NoIssuesYet = () => {
           return (
                <View style={[styles.noIssue]}>
-                    <Text style={[mainStyles.authTitles, { paddingBottom: 30, fontSize: 20 }]}>You haven't submitted any issue yet.</Text>
+                    <Text style={[mainStyles.authTitles, { paddingBottom: 20, fontSize: 20 }]}>You haven't submitted any issue yet.</Text>
 
                     <View style={[styles.placeholder]}>
-                         <Image source={require('@/assets/images/nothing.png')} />
+                         <Image source={require('@/assets/images/nothing.png')} resizeMode="contain" style={{ height: 120 }} />
                          <View style={styles.add}>
                               <Ionicons name="add" style={[styles.addIcon]} />
                          </View>
@@ -72,11 +72,11 @@ export default function HomeScreen() {
 
      return (
           <View style={[mainStyles.pages]}>
-               <Text style={[mainStyles.authTitles, { textAlign: 'left', fontFamily: 'EBGaramondBold' }]}>Welcome {username}</Text>
+               <Text style={[mainStyles.authTitles, { textAlign: 'left', fontFamily: 'EBGaramondBold', marginBottom: 5 }]}>Welcome {username}</Text>
                
                <Statistics />
                
-               <Text style={[mainStyles.authTitles, { textAlign: 'left', fontFamily: 'EBGaramondBold', marginTop: 20 }]}>Previous Issues</Text>
+               <Text style={[mainStyles.authTitles, { textAlign: 'left', fontFamily: 'EBGaramondBold', marginTop: 10 }]}>Previous Issues</Text>
 
                {/* <NoIssuesYet /> */}
                <IssuesDisplay />
@@ -106,8 +106,10 @@ const styles = StyleSheet.create({
      noIssue: {
           backgroundColor: MainColors["Light Gray"],
           paddingHorizontal: 20,
-          paddingVertical: 30,
+          paddingVertical: 10,
           borderRadius: 20,
+          maxHeight: 300
+          // height: '100%',
      },
      placeholder: {
           flexDirection: 'row',
@@ -118,7 +120,7 @@ const styles = StyleSheet.create({
      add: {
           backgroundColor: MainColors["Almost Black"],
           width: '40%',
-          height: '100%',
+          height: '80%',
           borderRadius: 20,
           justifyContent: 'center',
           alignItems: 'center',
