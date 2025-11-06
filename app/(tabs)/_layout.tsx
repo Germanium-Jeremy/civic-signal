@@ -51,7 +51,7 @@ export default function TabLayout() {
                          />,
                     }} />
                     <Tabs.Screen name="map" options={{
-                         title: 'Map',
+                         title: 'Maps',
                          tabBarIcon: ({ focused }) => <Ionicons name={focused ? "map-sharp" : "map-outline"}
                               color={focused ? MainColors["Accent Green"] : MainColors["Main Background"]}
                               size={focused ? 30 : 25}

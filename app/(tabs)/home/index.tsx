@@ -51,7 +51,7 @@ export default function HomeScreen() {
      }
 
      const IndividualIssue = (issue: any) => {
-          console.log("individual issue: ", issue.issue)
+          
           return (
                <View style={styles.issie}>
                     <Image source={require("@/assets/images/civic-signal.png")} resizeMode="contain" style={[styles.issueIcon]} />
