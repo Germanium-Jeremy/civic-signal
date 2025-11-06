@@ -114,7 +114,7 @@ export default function MapScreen() {
                     <Key />
 
                     <MapView style={StyleSheet.absoluteFill}
-                         initialRegion={{ latitude: -1.9499, longitude: 30.0588, latitudeDelta: 2, longitudeDelta: 3, }}
+                         initialRegion={{ latitude: -1.9499, longitude: 30.0588, latitudeDelta: 2, longitudeDelta: 3 }}
                          showsUserLocation showsMyLocationButton
                     >
                          {mockMapIssues.map((issue) => (
@@ -173,9 +173,10 @@ const styles = StyleSheet.create({
           paddingVertical: 10,
           paddingHorizontal: 10,
           borderRadius: 10,
-          bottom: 20,
-          right: 20,
+          bottom: 80,
+          right: 10,
           transitionDelay: '',
           elevation: 5,
+          zIndex: 2
      },
 })
