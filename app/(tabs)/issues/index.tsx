@@ -1,5 +1,6 @@
 import { MainColors } from "@/constants/theme";
 import { useStylesGlobal } from "@/hooks/use-styles-global";
+import { router, useRouter } from "expo-router";
 import { useState } from "react";
 import { FlatList, Image, Pressable, StyleSheet, Text, View } from "react-native";
 
@@ -31,6 +32,7 @@ const tabs = ["Submitted", "Acknowledged", "Pending", "Resolved"];
 export default function IssuesScreen() {
      const mainStyles = useStylesGlobal()
      const [activeTab, setActiveTab] = useState(tabs[0])
+     const navigate = useRouter()
 
      const handleChangeTab = (tab: string) => {
           setActiveTab(tab)
@@ -41,7 +43,7 @@ export default function IssuesScreen() {
                <View style={[styles.tabs]}>
                     {tabs.map((tab) => (
                          <Pressable style={[styles.tab, { backgroundColor: activeTab == tab ? MainColors["Accent Green"] : MainColors["Almost Black"] }]}
-                              onPress={() => handleChangeTab(tab)}
+                              onPress={() => handleChangeTab(tab)} key={tab}
                          >
                               <Text style={{ color: MainColors["Main Background"], fontWeight: 500 }}>{ tab }</Text>
                               <Text style={{ color: MainColors["Main Background"], fontWeight: 500, fontSize: 30 }}>0</Text>
@@ -52,18 +54,18 @@ export default function IssuesScreen() {
      }
 
      const IndividualIssue = (issue: any) => {
-               console.log("individual issue: ", issue.issue)
-               return (
-                    <View style={styles.issie}>
-                         <Image source={require("@/assets/images/civic-signal.png")} resizeMode="contain" style={[styles.issueIcon]} />
-     
-                         <View>
-                              <Text style={[mainStyles.authTitles, { fontSize: 18, fontWeight: 800 }]}>{ issue.issue.item.title }</Text>
-                              <Text style={[mainStyles.normalText]}>{ issue.issue.item.date }</Text>
-                         </View>
+
+          return (
+               <Pressable style={styles.issie} onPress={() => navigate.push("/(tabs)/issues/details")}>
+                    <Image source={require("@/assets/images/civic-signal.png")} resizeMode="contain" style={[styles.issueIcon]} />
+
+                    <View>
+                         <Text style={[mainStyles.authTitles, { fontSize: 18, fontWeight: 800 }]}>{ issue.issue.item.title }</Text>
+                         <Text style={[mainStyles.normalText]}>{ issue.issue.item.date }</Text>
                     </View>
-               )
-          }
+               </Pressable>
+          )
+     }
      
           const IssuesDisplay = () => {
                return (

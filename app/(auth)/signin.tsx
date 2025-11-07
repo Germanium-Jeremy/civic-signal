@@ -21,7 +21,7 @@ export default function SigninScreen() {
 
                <Link href={"/(auth)/forgot"} style={[mainStyles.normalText, { color: MainColors["Primary Blue"], textAlign: 'right', width: '100%' }]}>Forgot Password?</Link>
 
-               <MainButton title="Signin" isFullWidth toDo={() => router.replace("/(tabs)/home")} />
+               <MainButton title="Signin" isFullWidth toDo={() => router.replace("/(tabs)/home")} isDark />
 
                <Text style={[mainStyles.normalText, { color: MainColors["Primary Blue"] }]}>Don't have an account? <Link href={"/(auth)/signup"} style={{ color: MainColors["Almost Black"] }}>Signup</Link></Text>
           </View>

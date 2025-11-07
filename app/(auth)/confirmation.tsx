@@ -12,7 +12,7 @@ export default function ConfirmationResetPasswordScreen() {
                <Text style={[styles.civcSignal]}>CIVICSIGNAL</Text>
                <Text style={[mainStyles.normalText, { color: MainColors["Primary Blue"], marginBottom: 50 }]}>Your password has been updated. You can now log in to your account.</Text>
 
-               <MainButton title="Go to signin" isFullWidth />
+               <MainButton title="Go to signin" isFullWidth isDark />
           </View>
      )
 }

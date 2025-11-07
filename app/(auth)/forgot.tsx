@@ -17,7 +17,7 @@ export default function ForgotPasswordScreen() {
                     <InputElement placeholder="Email Address / Phone" />
                </View>
 
-               <MainButton title="Get code" isFullWidth />               
+               <MainButton title="Get code" isFullWidth isDark />               
           </View>
      )
 }

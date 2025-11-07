@@ -164,8 +164,7 @@ const styles = StyleSheet.create({
           height: '93%',
           position: 'relative',
           flex: 1,
-          borderWidth: 2,
-          overflow: 'hidden'
+          overflow: 'hidden',
      },
      keyContainer: {
           position: 'absolute',
@@ -177,6 +176,6 @@ const styles = StyleSheet.create({
           right: 10,
           transitionDelay: '',
           elevation: 5,
-          zIndex: 2
+          zIndex: 2,
      },
 })

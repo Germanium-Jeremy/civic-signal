@@ -16,7 +16,7 @@ export default function ResetPasswordScreen() {
                     <InputElement placeholder="Confirm password" />
                </View>
 
-               <MainButton title="Reset Password" isFullWidth />
+               <MainButton title="Reset Password" isFullWidth isDark />
           </View>
      )
 }

@@ -12,7 +12,7 @@ export default function WaitingScreen() {
                <Text style={[mainStyles.authTitles, { marginTop: -10 }]}>Account not verified</Text>
                <Text style={[mainStyles.normalText, { color: MainColors["Primary Blue"], marginBottom: 50 }]}>Two verification codes have been sent to your contacts. One to your email and another to your phone number.</Text>
 
-               <MainButton title="Verify" isFullWidth />
+               <MainButton title="Verify" isFullWidth isDark />
 
                <Text style={[mainStyles.normalText, { color: MainColors["Primary Blue"] }]}>
                     Didn’t receive the codes? Resent code via

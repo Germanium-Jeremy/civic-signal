@@ -19,7 +19,7 @@ export default function VerifyAccountScreen() {
                     <InputElement placeholder="Code" />
                </View>
 
-               <MainButton title={`Verify ${option}`} isFullWidth />
+               <MainButton title={`Verify ${option}`} isFullWidth isDark />
 
                <Text style={[mainStyles.normalText, { color: MainColors["Primary Blue"] }]}>Didn't get the code?</Text>
           </View>
