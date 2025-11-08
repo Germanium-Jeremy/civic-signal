@@ -2,6 +2,8 @@ import { Stack } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import { useFonts } from 'expo-font'
 import 'react-native-reanimated';
+import { SafeAreaView } from 'react-native-safe-area-context';
+import { MainColors } from '@/constants/theme';
 
 export const unstable_settings = {
   anchor: '(tabs)',
@@ -18,10 +20,13 @@ export default function RootLayout() {
   }
 
   return (
-    <Stack>
-      <Stack.Screen name='(auth)' options={{ headerShown: false }} />
-      <Stack.Screen name='(tabs)' options={{ headerShown: false }} />
-      <StatusBar style="auto" />
-    </Stack>
+    <SafeAreaView style={{ flex: 1, backgroundColor: MainColors["Almost Black"] }}>
+      <Stack>
+        <Stack.Screen name="(auth)" options={{ headerShown: false }} />
+        <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
+        <Stack.Screen name="(notifications)" options={{ headerShown: false }} />
+        <StatusBar style="auto" />
+      </Stack>
+    </SafeAreaView>
   );
 }
