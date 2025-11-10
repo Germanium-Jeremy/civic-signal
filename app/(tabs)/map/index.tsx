@@ -113,7 +113,7 @@ export default function MapScreen() {
                <View style={[styles.map]}>
                     <Key />
 
-                    {/* <MapView style={StyleSheet.absoluteFill}
+                    <MapView style={StyleSheet.absoluteFill}
                          initialRegion={{ latitude: -1.9499, longitude: 30.0588, latitudeDelta: 2, longitudeDelta: 3 }}
                          showsUserLocation showsMyLocationButton
                     >
@@ -122,7 +122,7 @@ export default function MapScreen() {
                                    pinColor={'red'} onPress={() => handleMarkerPress(issue)}
                               />
                          ))}
-                    </MapView> */}
+                    </MapView>
                </View>
           )
      }

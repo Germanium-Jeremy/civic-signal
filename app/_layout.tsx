@@ -20,12 +20,12 @@ export default function RootLayout() {
   }
 
   return (
-    <SafeAreaView style={{ flex: 1, backgroundColor: MainColors["Almost Black"] }}>
+    <SafeAreaView style={{ flexGrow: 1 }}>
       <Stack>
         <Stack.Screen name="(auth)" options={{ headerShown: false }} />
         <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
         <Stack.Screen name="(notifications)" options={{ headerShown: false }} />
-        <StatusBar style="auto" />
+        <StatusBar style="auto"  />
       </Stack>
     </SafeAreaView>
   );

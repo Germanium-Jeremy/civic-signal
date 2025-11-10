@@ -52,7 +52,7 @@ export default function IssueDetailsScreen() {
      
      const IndividualHistory = (issue: any) => {
           return (
-               <Pressable style={[styles.hist]}>
+               <Pressable style={[styles.hist]} key={issue}>
                     <Image source={require("@/assets/images/civic-signal.png")} resizeMode="contain" style={[styles.issueIcon]} />
 
                     <View>

@@ -1,30 +1,63 @@
 import { MainColors } from "@/constants/theme";
+import { UserDataInterface } from "@/constants/UserInterface";
 import { useStylesGlobal } from "@/hooks/use-styles-global";
+import { AuthService } from "@/services/apis/authServices";
 import { Ionicons } from "@expo/vector-icons";
-import { FlatList, Image, Pressable, StyleSheet, Text, View } from "react-native";
+import { useRouter } from "expo-router";
+import { useEffect, useState } from "react";
+import { Alert, FlatList, Image, Pressable, StyleSheet, Text, View } from "react-native";
 
 const tabs = ["Submitted", "Acknowledged", "Pending", "Resolved"];
 
 export default function ProfileScreen() {
      const mainStyles = useStylesGlobal()
-
-          const TabSelection = () => {
-               return (
-                    <FlatList showsHorizontalScrollIndicator={false} horizontal data={tabs} renderItem={(tab) => (
-                         <View style={[styles.tab]}>
-                              <Text style={{ color: MainColors["Almost Black"], fontWeight: 500 }}>{ tab.item }</Text>
-                              <Text style={{ color: MainColors["Almost Black"], fontWeight: 500, fontSize: 30 }}>0</Text>
-                         </View>
-                    )} />
-               )
+     const [UserData, setUserData] = useState<UserDataInterface | undefined>()
+     const navigate = useRouter()
+     
+     useEffect(() => {
+          const getUserData = async () => {
+               const userData = await AuthService.getCurrentUser() as UserDataInterface
+               setUserData(userData)
           }
+
+          getUserData()
+     }, [])
+
+     const handleLogout = async () => {
+          Alert.alert("Warning?",
+               "Are you sure you want to log out?",
+               [{
+                    text: 'Ok',
+                    onPress: async () => {
+                         const result = await AuthService.logout();
+                         if (result.success) navigate.replace("/(auth)/signin")
+                    },
+               }, {
+                    text: 'Cancel',
+                    onPress: () => {
+                         console.log("canceled")
+                    }
+               }]
+          )
+     }
+
+     const TabSelection = () => {
+          return (
+               <FlatList showsHorizontalScrollIndicator={false} horizontal data={tabs} renderItem={(tab) => (
+                    <View style={[styles.tab]}>
+                         <Text style={[mainStyles.normalText, { color: MainColors["Almost Black"], fontWeight: 500 }]}>{ tab.item }</Text>
+                         <Text style={[mainStyles.normalText, { color: MainColors["Almost Black"], fontWeight: 500, fontSize: 30 }]}>0</Text>
+                    </View>
+               )} />
+          )
+     }
 
      return (
           <View style={[mainStyles.pages, { gap: 30 }]}>
                <View style={[styles.profile]}>
                     <Image source={require("@/assets/images/civicsignal.png")} resizeMode="contain" style={[styles.profileImage]} />
-                    <Text style={[mainStyles.normalText, styles.name]}>Mugisha David</Text>
-                    <Text style={[mainStyles.normalText, styles.role]}>Citizen</Text>
+                    <Text style={[mainStyles.normalText, styles.name]}>{ UserData?.fullName }</Text>
+                    <Text style={[mainStyles.normalText, styles.role]}>{ UserData?.role }</Text>
                </View>
 
                <TabSelection />
@@ -46,10 +79,10 @@ export default function ProfileScreen() {
                          <Text style={[mainStyles.normalText]}>Privacy Policies</Text>
                          <Ionicons name="chevron-forward" size={20} />
                     </View>
-                    <View style={[styles.option]}>
+                    <Pressable style={[styles.option]} onPress={handleLogout}>
                          <Text style={[mainStyles.normalText]}>Logout</Text>
                          <Ionicons name="chevron-forward" size={20} />
-                    </View>
+                    </Pressable>
                </View>
           </View>
      )

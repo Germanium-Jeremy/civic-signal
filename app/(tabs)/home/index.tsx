@@ -1,6 +1,9 @@
 import { MainColors } from "@/constants/theme";
+import { UserDataInterface } from "@/constants/UserInterface";
 import { useStylesGlobal } from "@/hooks/use-styles-global";
+import { AuthService } from "@/services/apis/authServices";
 import { Ionicons } from "@expo/vector-icons";
+import { useEffect, useState } from "react";
 import { FlatList, Image, ScrollView, StyleSheet, Text, View } from "react-native";
 
 const issuesDammy = [
@@ -11,7 +14,16 @@ const issuesDammy = [
 
 export default function HomeScreen() {
      const mainStyles = useStylesGlobal()
-     const username = "Mugisha"
+     const [UserData, setUserData] = useState<UserDataInterface | undefined>()
+
+     useEffect(() => {
+          const getUserData = async () => {
+               const userData = await AuthService.getCurrentUser() as UserDataInterface
+               setUserData(userData)
+          }
+
+          getUserData()
+     }, [])
 
      const Statistics = () => {
           return (
@@ -72,7 +84,7 @@ export default function HomeScreen() {
 
      return (
           <View style={[mainStyles.pages]}>
-               <Text style={[mainStyles.authTitles, { textAlign: 'left', fontFamily: 'EBGaramondBold', marginBottom: 5 }]}>Welcome {username}</Text>
+               <Text style={[mainStyles.authTitles, { textAlign: 'left', fontFamily: 'EBGaramondBold', marginBottom: 5 }]}>Welcome {UserData?.fullName.split(" ")[1]}</Text>
                
                <Statistics />
                

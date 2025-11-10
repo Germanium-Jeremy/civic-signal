@@ -29,7 +29,7 @@ export const TokenManager = {
 
      saveUserData: (data: any) => AsyncStorage.setItem('@user_data', JSON.stringify(data)),
      getUserData: async () => {
-          const data = await AsyncStorage.getItem('@user_data')
+          const data = await AsyncStorage.getItem("@user_data");
           return data ? JSON.parse(data) : null
      },
 }
