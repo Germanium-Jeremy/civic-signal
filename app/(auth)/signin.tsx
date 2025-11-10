@@ -2,6 +2,7 @@ import InputElement from "@/components/InputElement";
 import MainButton from "@/components/MainButton";
 import { MainColors } from "@/constants/theme";
 import { useStylesGlobal } from "@/hooks/use-styles-global";
+import { AuthService } from "@/services/apis/authServices";
 import { Link, useRouter } from "expo-router";
 import { Image, Text, View } from "react-native";
 
