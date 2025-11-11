@@ -23,7 +23,6 @@ export default function SigninScreen() {
 
           setLoading(true);
           const result = await AuthService.login(email.toLowerCase(), password);
-          console.log("data: ", result)
           setLoading(false);
 
           if (result.success) {
