@@ -10,11 +10,15 @@ import { AuthService } from "@/services/apis/authServices";
 export default function VerifyAccountScreen() {
      const mainStyles = useStylesGlobal()
      const searchParams = useLocalSearchParams()
-     const option = searchParams.option ? searchParams.option : 'Account'
      const navigate = useRouter()
-
+     
+     const option = searchParams.option ? searchParams.option : 'Account'
      const email = searchParams.email as string
      const phoneNumber = searchParams.phone as string
+
+     // Check if fields are already verified (from login response)
+     const initialEmailVerified = searchParams.emailVerified === 'true';
+     const initialPhoneVerified = searchParams.phoneVerified === 'true';
 
      const [emailCode, setEmailCode] = useState("")
      const [phoneCode, setPhoneCode] = useState("")
@@ -23,6 +27,14 @@ export default function VerifyAccountScreen() {
      const [phoneVerified, setPhoneVerified] = useState(false)
      const [emailCooldown, setEmailCooldown] = useState(0)
      const [phoneCooldown, setPhoneCooldown] = useState(0)
+
+     useEffect(() => {
+          if (initialEmailVerified && !initialPhoneVerified) {
+               Alert.alert("Email Already Verified", "Please verify your phone number to continue");
+          } else if (initialPhoneVerified && !initialEmailVerified) {
+               Alert.alert("Phone Already Verified", "Please verify your email to continue");
+          }
+     }, [initialEmailVerified, initialPhoneVerified]);
 
      useEffect(() => {
           if (emailCooldown > 0) setTimeout(() => setEmailCooldown(emailCooldown - 1), 1000);
@@ -46,9 +58,21 @@ export default function VerifyAccountScreen() {
                setEmailVerified(true);
                Alert.alert("Success!", "Email verified!");
 
+               // Check if fully verified (both email and phone)
                if (result.data.fullyVerified) {
                     Alert.alert("Account Verified!", "You can now start using the app!", [
-                         { text: "OK", onPress: () => navigate.replace("/(tabs)/home") }
+                         {
+                              text: "OK",
+                              onPress: () => navigate.replace("/(tabs)/home"),
+                         },
+                    ]);
+               } else if (phoneVerified) {
+                    // Phone was already verified, now both are done
+                    Alert.alert("Account Verified!", "You can now start using the app!", [
+                         {
+                              text: "OK",
+                              onPress: () => navigate.replace("/(tabs)/home"),
+                         },
                     ]);
                }
           } else {
@@ -71,9 +95,21 @@ export default function VerifyAccountScreen() {
                setPhoneVerified(true);
                Alert.alert("Success!", "Phone verified!");
 
+               // Check if fully verified (both email and phone)
                if (result.data.fullyVerified) {
                     Alert.alert("Account Verified!", "You can now start using the app!", [
-                         { text: "OK", onPress: () => navigate.replace("/(tabs)/home") }
+                         {
+                              text: "OK",
+                              onPress: () => navigate.replace("/(tabs)/home"),
+                         },
+                    ]);
+               } else if (emailVerified) {
+                    // Email was already verified, now both are done
+                    Alert.alert("Account Verified!", "You can now start using the app!", [
+                         {
+                              text: "OK",
+                              onPress: () => navigate.replace("/(tabs)/home"),
+                         }
                     ]);
                }
           } else {
@@ -112,47 +148,62 @@ export default function VerifyAccountScreen() {
                <Text style={[mainStyles.authTitles, { marginTop: -50 }]}>Verify your {option}</Text>
                
                <Text style={[mainStyles.normalText, { textAlign: "center" }]}>
-                    Codes sent to:{"\n"}📧 {email}{"\n"}📱 {phoneNumber}
+                    {email && `📧 ${email}`}
+                    {email && phoneNumber && "\n"}
+                    {phoneNumber && `📱 ${phoneNumber}`}
                </Text>
 
-               {/* Email Verification */}
-               <View style={{ width: "100%", gap: 10 }}>
-                    <Text style={[mainStyles.normalText, { fontWeight: "bold" }]}>Email Code {emailVerified && "✅"}</Text>
-                    <InputElement placeholder="6-digit email code" text={emailCode} onChange={setEmailCode} isPhone />
-                    {/* <InputElement placeholder="6-digit email code" text={emailCode} onChange={setEmailCode} isPhone maxLength={6} editable={!emailVerified} /> */}
-                    {!emailVerified && (
-                         <>
-                              <MainButton title={loading ? "Verifying..." : "Verify Email"} isFullWidth isDark toDo={handleVerifyEmail} disabled={loading || emailCode.length !== 6} />
-                              <TouchableOpacity onPress={handleResendEmail} disabled={emailCooldown > 0}>
-                                   <Text style={[mainStyles.normalText, { color: MainColors["Primary Blue"], textAlign: "center" }]}>
-                                        {emailCooldown > 0 ? `Resend in ${emailCooldown}s` : "Resend Email Code"}
-                                   </Text>
-                              </TouchableOpacity>
-                         </>
-                    )}
-               </View>
+               {/* Email Verification - Only show if NOT already verified */}
+               {!emailVerified ? (
+                    <View style={{ width: "100%", gap: 10 }}>
+                         <Text style={[mainStyles.normalText, { fontWeight: "bold" }]}>Email Verification Code</Text>
+                         <InputElement placeholder="6-digit email code" text={emailCode} onChange={setEmailCode} isPhone />
+                         <MainButton title={loading ? "Verifying..." : "Verify Email"} isFullWidth isDark
+                              toDo={handleVerifyEmail} disabled={loading || emailCode.length !== 6} 
+                         />
+                         <TouchableOpacity onPress={handleResendEmail} disabled={emailCooldown > 0}>
+                              <Text style={[mainStyles.normalText, { color: MainColors["Primary Blue"], textAlign: "center" }]}>
+                                   {emailCooldown > 0 ? `Resend in ${emailCooldown}s` : "Resend Email Code"}
+                              </Text>
+                         </TouchableOpacity>
+                    </View>
+               ) : (
+                    <View style={{ width: "100%", gap: 10 }}>
+                         <Text style={[mainStyles.normalText, { fontWeight: "bold", color: 'green', textAlign: 'center' }]}>
+                              ✅ Email Already Verified
+                         </Text>
+                    </View>
+               )}
 
-               {/* Phone Verification */}
-               <View style={{ width: "100%", gap: 10 }}>
-                    <Text style={[mainStyles.normalText, { fontWeight: "bold" }]}>Phone Code {phoneVerified && "✅"}</Text>
-                    <InputElement placeholder="6-digit phone code" text={phoneCode} onChange={setPhoneCode} isPhone />
-                    {!phoneVerified && (
-                         <>
-                              <MainButton title={loading ? "Verifying..." : "Verify Phone"} isFullWidth isDark toDo={handleVerifyPhone} disabled={loading || phoneCode.length !== 6} />
-                                   <TouchableOpacity onPress={handleResendPhone} disabled={phoneCooldown > 0}>
-                                   <Text style={[mainStyles.normalText, { color: MainColors["Primary Blue"], textAlign: "center" }]}>
-                                        {phoneCooldown > 0 ? `Resend in ${phoneCooldown}s` : "Resend Phone Code"}
-                                   </Text>
-                              </TouchableOpacity>
-                         </>
-                    )}
-               </View>
-
-               {/* <MainButton title={`Verify ${option}`} isFullWidth isDark /> */}
+               {/* Phone Verification - Only show if NOT already verified */}
+               {!phoneVerified ? (
+                    <View style={{ width: "100%", gap: 10 }}>
+                         <Text style={[mainStyles.normalText, { fontWeight: "bold" }]}>Phone Verification Code</Text>
+                         <InputElement placeholder="6-digit phone code" text={phoneCode} onChange={setPhoneCode} isPhone />
+                         <MainButton title={loading ? "Verifying..." : "Verify Phone"} isFullWidth isDark 
+                              toDo={handleVerifyPhone} disabled={loading || phoneCode.length !== 6} 
+                         />
+                         <TouchableOpacity onPress={handleResendPhone} disabled={phoneCooldown > 0}>
+                              <Text style={[mainStyles.normalText, { color: MainColors["Primary Blue"], textAlign: "center" }]}>
+                                   {phoneCooldown > 0 ? `Resend in ${phoneCooldown}s` : "Resend Phone Code"}
+                              </Text>
+                         </TouchableOpacity>
+                    </View>
+               ) : (
+                    <View style={{ width: "100%", gap: 10 }}>
+                         <Text style={[mainStyles.normalText, { fontWeight: "bold", color: 'green', textAlign: 'center' }]}>
+                              ✅ Phone Already Verified
+                         </Text>
+                    </View>
+               )}
 
                {loading && <ActivityIndicator size="large" color={MainColors["Primary Blue"]} />}
 
-               {/* <Text style={[mainStyles.normalText, { color: MainColors["Primary Blue"] }]}>Didn't get the code?</Text> */}
+               {(emailVerified || phoneVerified) && !(emailVerified && phoneVerified) && (
+                    <Text style={[mainStyles.normalText, { textAlign: 'center', color: MainColors["Primary Blue"] }]}>
+                         {emailVerified ? "1/2 Complete - Verify phone to continue" : "1/2 Complete - Verify email to continue"}
+                    </Text>
+               )}
           </View>
      )
 }

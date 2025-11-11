@@ -31,20 +31,25 @@ export default function SigninScreen() {
                     { text: "OK", onPress: () => router.replace("/(tabs)/home") }
                ]);
           } else if (result.requiresVerification) {
-               Alert.alert("Verification Required", "Complete account verification to continue",
-                    [
-                         {
-                              text: "Verify Now",
-                              onPress: () => {
-                                   router.push({
-                                        pathname: "/(auth)/verifyaccount",
-                                        params: { email: email.toLowerCase(), option: "Email" }
-                                   });
-                              }
-                         },
-                         { text: "Cancel", style: "cancel" }
-                    ]
-               );
+               const alertMessage = result.message || "Complete account verification to continue";
+               Alert.alert("Verification Required", alertMessage, [
+                    {
+                         text: "Verify Now",
+                         onPress: () => {
+                              router.push({
+                                   pathname: "/(auth)/verifyaccount",
+                                   params: {
+                                        email: result.email,
+                                        phone: result.phone,
+                                        emailVerified: result.emailVerified ? 'true' : 'false',
+                                        phoneVerified: result.phoneVerified ? 'true' : 'false',
+                                        option: "Account"
+                                   }
+                              });
+                         }
+                    },
+                    { text: "Cancel", style: "cancel" }
+               ]);
           } else {
                Alert.alert("Login Failed", result.error);
           }

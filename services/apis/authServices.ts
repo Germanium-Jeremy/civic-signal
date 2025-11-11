@@ -92,7 +92,13 @@ export const AuthService = {
                     return {
                          success: false,
                          requiresVerification: true,
-                         error: 'Account not verified',
+                         emailVerified: error.response.data.emailVerified,
+                         phoneVerified: error.response.data.phoneVerified,
+                         email: error.response.data.email,
+                         phone: error.response.data.phone,
+                         message: error.response.data.message,
+                         codesSent: error.response.data.codesSent,
+                         error: "Account not verified",
                     };
                }
                return { success: false, error: error.response?.data?.error || 'Login failed' };
