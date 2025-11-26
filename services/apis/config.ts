@@ -1,7 +1,7 @@
 import axios from 'axios'
 import AsyncStorage from '@react-native-async-storage/async-storage'
 
-export const API_BASE_URL = "http://169.254.190.51:3000/api";
+export const API_BASE_URL = "http://169.254.224.202:3000/api";
 // export const API_BASE_URL = "https://civic-signal.vercel.app/api";
 
 const api = axios.create({
