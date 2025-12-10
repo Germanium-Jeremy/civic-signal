@@ -15,7 +15,7 @@
         "ITSAppUsesNonExemptEncryption": false
       },
       "config": {
-        "googleMapsApiKey": "AIzaSyBFEdxmSoipOopC45h5vZHiSbZ5pM0IK5o"
+        "googleMapsApiKey": ""
       }
     },
     "android": {
@@ -30,7 +30,7 @@
       "package": "com.djeremiah.civicsignal",
       "config": {
         "googleMaps": {
-          "apiKey": "AIzaSyBFEdxmSoipOopC45h5vZHiSbZ5pM0IK5o"
+          "apiKey": ""
         }
       }
     },
@@ -39,7 +39,7 @@
       "favicon": "./assets/images/favicon.png",
       "config": {
         "googleMaps": {
-          "apiKey": "AIzaSyBFEdxmSoipOopC45h5vZHiSbZ5pM0IK5o"
+          "apiKey": ""
         }
       }
     },
