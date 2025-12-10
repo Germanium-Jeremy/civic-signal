@@ -2,11 +2,12 @@ import { MainColors } from "@/constants/theme";
 import { UserDataInterface } from "@/constants/UserInterface";
 import { useStylesGlobal } from "@/hooks/use-styles-global";
 import { AuthService } from "@/services/apis/authServices";
+import { formatDate, truncateText } from "@/services/apis/functions";
 import { IssueService } from "@/services/apis/issueServices";
 import { Ionicons } from "@expo/vector-icons";
 import { useFocusEffect, useRouter } from "expo-router";
 import { useCallback, useState } from "react";
-import { FlatList, Image, Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
+import { FlatList, Image, Pressable, RefreshControl, StyleSheet, Text, View } from "react-native";
 
 const issuesDammy = [
      { id: 1, title: 'This is a title', date: 'This is a date' },
@@ -25,11 +26,9 @@ export default function HomeScreen() {
 
      const fetchData = async () => {
           try {
-               // Get user data
                const user = await AuthService.getCurrentUser() as UserDataInterface;
                setUserData(user);
 
-               // Get statistics
                const statsResult = await IssueService.getMyStats();
                if (statsResult.success) {
                     if (statsResult.data) {
@@ -37,11 +36,11 @@ export default function HomeScreen() {
                     }
                }
 
-               // Get recent issues (limit to 5 for home screen)
                const issuesResult = await IssueService.getMyIssues({ limit: 5 });
                if (issuesResult.success) {
                     setRecentIssue(issuesResult.data.data.issues);
                }
+               console.log("Issues: ", issuesResult.data.data.issues)
           } catch (error) {
                console.error('Error fetching data:', error);
           } finally {
@@ -99,46 +98,51 @@ export default function HomeScreen() {
           )
      }
 
-     const IndividualIssue = (issue: any) => {
-          const getStatusColor = (status: string) => {
+     const IndividualIssue = ({ item }: { item: any }) => {
+          const getStatusColor = (status: any) => {
                switch (status) {
-                    case 'submitted': return '#FFE2E2';
-                    case 'acknowledged': return '#4169E1';
-                    case 'in_progress': return '#FFD700';
-                    case 'resolved': return '#32CD32';
-                    case 'closed': return '#808080';
-                    default: return '#000000';
+                    case "submitted": return MainColors["Error red"];
+                    case "acknowledged": return MainColors["Warning Yellow"];
+                    case "in_progress": return "#FFD700";
+                    case "resolved": return "#32CD32";
+                    case "closed": return "#808080";
+                    default: return "#000000";
                }
           };
-          
-          return (
-               <Pressable style={styles.issie} onPress={() => navigate.push({ pathname: '/(tabs)/issues/details', params: { issueId: issue._id } })}>
-                    <View style={[styles.statusDot, { backgroundColor: getStatusColor(issue.status) }]} />
 
+          return (
+               <Pressable style={styles.issie} onPress={() => navigate.push({ pathname: "/(tabs)/issues/details", params: { issueId: item._id } })}>
+                    <View style={[styles.statusDot, { backgroundColor: getStatusColor(item.status) }]} />
                     <View>
-                         <Text style={[mainStyles.authTitles, { fontSize: 18, fontWeight: 800 }]}>{ issue.title }</Text>
-                         <Text style={[mainStyles.normalText]}>{ issue.issue.item.date }</Text>
+                         <Text style={[mainStyles.authTitles, { fontSize: 18, fontWeight: 800, textAlign: 'left' }]}>{item.category.charAt(0).toUpperCase() + item.category.slice(1)}, {truncateText(item.description, 15)}</Text>
+                         <Text style={[mainStyles.normalText]}>Submitted at: {formatDate(item.submittedAt)}</Text>
                     </View>
                </Pressable>
-          )
-     }
+          );
+     };
 
      const IssuesDisplay = () => {
+          if (!resentIssue || resentIssue.length === 0) return <NoIssuesYet />
           return (
-               <FlatList data={issuesDammy} renderItem={(issue) => <IndividualIssue issue={issue} />} keyExtractor={(issie: any) => issie.id} />
-          )
-     }
+               <FlatList
+                    data={resentIssue}
+                    renderItem={({ item }) => <IndividualIssue item={item} />}
+                    keyExtractor={(item: any) => item._id}
+               />
+          );
+     };
 
      return (
           <View style={[mainStyles.pages]}>
+               <RefreshControl refreshing={refreshing} onRefresh={fetchData} />
+               
                <Text style={[mainStyles.authTitles, { textAlign: 'left', fontFamily: 'EBGaramondBold', marginBottom: 5 }]}>Welcome {UserData?.fullName.split(" ")[1]}</Text>
                
                <Statistics />
                
                <Text style={[mainStyles.authTitles, { textAlign: 'left', fontFamily: 'EBGaramondBold', marginTop: 10 }]}>Previous Issues</Text>
 
-               <NoIssuesYet />
-               {/* <IssuesDisplay /> */}
+               {resentIssue.length > 0 ? <IssuesDisplay /> : <NoIssuesYet />}
           </View>
      )
 }
@@ -201,8 +205,8 @@ const styles = StyleSheet.create({
           marginVertical: 5
      },
      statusDot: {
-          width: 12,
-          height: 12,
-          borderRadius: 6,
+          width: 18,
+          height: 18,
+          borderRadius: 20,
      },
 })

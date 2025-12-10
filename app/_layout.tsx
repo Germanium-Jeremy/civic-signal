@@ -60,9 +60,9 @@ export default function RootLayout() {
     }
   }
 
-  useEffect(() => {
-    registerPushToken();
-  }, []);
+  // useEffect(() => {
+  //   registerPushToken();
+  // }, []);
   
   const [fontsLoaded] = useFonts({
     'EBGaramond': require('../assets/fonts/EB_Garamond/EBGaramond-VariableFont_wght.ttf'),

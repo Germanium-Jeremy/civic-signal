@@ -26,9 +26,10 @@ export default function SigninScreen() {
           setLoading(false);
 
           if (result.success) {
-               Alert.alert("Welcome!", `Hello ${result.data.user.fullName}!`, [
-                    { text: "OK", onPress: () => router.replace("/(tabs)/home") }
-               ]);
+               router.replace("/(tabs)/home")
+               // Alert.alert("Welcome!", `Hello ${result.data.user.fullName}!`, [
+                    // { text: "OK", onPress: () => router.replace("/(tabs)/home") } 
+               // ]);
           } else if (result.requiresVerification) {
                const alertMessage = result.message || "Complete account verification to continue";
                Alert.alert("Verification Required", alertMessage, [

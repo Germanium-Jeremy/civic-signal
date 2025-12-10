@@ -4,7 +4,7 @@ import { useStylesGlobal } from "@/hooks/use-styles-global";
 import { IssueService } from "@/services/apis/issueServices";
 import { useRouter } from "expo-router";
 import { useEffect, useState } from "react";
-import { ActivityIndicator, Alert, Modal, Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
+import { ActivityIndicator, Alert, Modal, Pressable, ScrollView, StyleSheet, Text, View, Platform } from "react-native";
 import * as Location from 'expo-location'
 import { MainColors } from "@/constants/theme";
 
@@ -14,12 +14,15 @@ export default function ReportScreen() {
 
      const [categories, setCategories] = useState<any[]>([]);
      const [selectedCategory, setSelectedCategory] = useState<any>(null);
-     const [title, setTitle] = useState("");
+     const [selectedPriority, setSelectedPriority] = useState("")
+     const priorities = ['High', "Medium", "Low"]
      const [description, setDescription] = useState("");
-     const [location, setLocation] = useState<any>(null);
+     const [location, setLocation] = useState<Location.LocationObject | null>(null);
      const [loadingCategories, setLoadingCategories] = useState(true);
      const [loadingLocation, setLoadingLocation] = useState(false);
      const [showCategoryModal, setShowCategoryModal] = useState(false);
+     const [showPriorityModal, setShowPriorityModal] = useState(false);
+     const [lodingSubmit, setLoadingSubmit] = useState(false)
 
      useEffect(() => {
           fetchCategories();
@@ -50,26 +53,14 @@ export default function ReportScreen() {
 
                // Get current location
                let currentLocation = await Location.getCurrentPositionAsync({});
-               
-               // Reverse geocode to get address
-               let address = await Location.reverseGeocodeAsync({
-                    latitude: currentLocation.coords.latitude,
-                    longitude: currentLocation.coords.longitude,
-               });
+               console.log(currentLocation)
 
-               if (address.length > 0) {
-                    const addr = address[0];
-                    setLocation({
-                         latitude: currentLocation.coords.latitude,
-                         longitude: currentLocation.coords.longitude,
-                         address: `${addr.street || ''} ${addr.name || ''}`.trim(),
-                         district: addr.city || addr.region || 'Unknown',
-                         sector: addr.district || addr.subregion || 'Unknown',
-                    });
-               }
+               setLocation({
+                    coords: currentLocation.coords,
+                    timestamp: currentLocation.timestamp
+               })
           } catch (error) {
                console.error('Error getting location:', error);
-               Alert.alert("Location Error", "Could not get your location. Please enter manually.");
           } finally {
                setLoadingLocation(false);
           }
@@ -79,40 +70,61 @@ export default function ReportScreen() {
           setSelectedCategory(category);
           setShowCategoryModal(false);
      };
+     
+     const handlePrioritySelect = (priority: string) => {
+          setSelectedPriority(priority);
+          setShowPriorityModal(false);
+     };
 
-     const handleContinue = () => {
+     const handleContinue = async () => {
           // Validation
           if (!selectedCategory) {
-               Alert.alert("Error", "Please select an issue category");
+               Alert.alert("Missing value", "Please select an issue category");
                return;
           }
 
-          if (!title.trim()) {
-               Alert.alert("Error", "Please enter an issue title");
+          if (!selectedPriority.trim()) {
+               Alert.alert("Missing value", "Please enter an issue Priority");
                return;
           }
 
           if (!description.trim()) {
-               Alert.alert("Error", "Please enter an issue description");
+               Alert.alert("Missing value", "Please enter an issue description");
                return;
           }
 
-          if (!location) {
-               Alert.alert("Location Required", "Location is required to report an issue. Please enable location or enter manually."
-               );
-               return;
-          }
-
-          // Navigate to media attachment screen with data
-          navigate.push({
-               pathname: "/(tabs)/report/media",
-               params: {
+          try {
+               setLoadingSubmit(true)
+               const payload: any = {
                     category: selectedCategory.id,
-                    title: title.trim(),
                     description: description.trim(),
-                    location: JSON.stringify(location),
+                    priority: selectedPriority.trim(),
+               };
+
+               if (location?.coords?.latitude && location?.coords?.longitude) {
+                    payload.location = {
+                         latitude: location.coords.latitude,
+                         longitude: location.coords.longitude,
+                    };
                }
-          });
+
+               const res = await IssueService.createIssue(payload);
+               setLoadingSubmit(false)
+               if (res.success && res.data?.data?.issue?._id) {
+                    const issueId = res.data.data.issue._id;
+                    navigate.push({
+                         pathname: "/(tabs)/report/media",
+                         params: { issueId },
+                    });
+               } else {
+                    Alert.alert("Error", res.error || "Failed to create issue.");
+                    console.warn("Failed to submit issue: ", res.error)
+               }
+          } catch(error: any) {
+               Alert.alert("Error", error?.message || "Failed to create issue.");
+               console.warn("Failed to submit issue: ", error)
+               setLoadingSubmit(false)
+          }
      };
 
      const CategoryModal = () => (
@@ -157,6 +169,41 @@ export default function ReportScreen() {
                </View>
           );
      }
+     
+     const PriorityModal = () => (
+          <Modal visible={showPriorityModal} animationType="slide" transparent={true} onRequestClose={() => setShowPriorityModal(false)}>
+               <View style={styles.modalContainer}>
+                    <View style={styles.modalContent}>
+                         <Text style={[mainStyles.authTitles, { marginBottom: 20 }]}>Select Issue Priority</Text>
+
+                         <ScrollView style={styles.categoryList}>
+                              {priorities.map((priority) => (
+                                   <Pressable key={priority} style={[styles.categoryItem, selectedPriority === priority && styles.categoryItemSelected]}
+                                        onPress={() => handlePrioritySelect(priority)}
+                                   >
+                                             <Text style={[mainStyles.normalText, { fontSize: 12, color: '#666', marginTop: 5 }]}>
+                                                  {priority}
+                                             </Text>
+                                   </Pressable>
+                              ))}
+                         </ScrollView>
+
+                         <Pressable style={styles.closeModalButton} onPress={() => setShowPriorityModal(false)}>
+                              <Text style={{ color: MainColors["Main Background"], fontWeight: '600' }}>Cancel</Text>
+                         </Pressable>
+                    </View>
+               </View>
+          </Modal>
+     );
+
+     if (loadingCategories) {
+          return (
+               <View style={[mainStyles.pages, { justifyContent: 'center', alignItems: 'center' }]}>
+                    <ActivityIndicator size="large" color={MainColors["Primary Blue"]} />
+                    <Text style={[mainStyles.normalText, { marginTop: 20 }]}>Loading categories...</Text>
+               </View>
+          );
+     }
 
      return (
           <ScrollView style={[mainStyles.pages]}>
@@ -170,40 +217,29 @@ export default function ReportScreen() {
                                    {selectedCategory ? `${selectedCategory.icon} ${selectedCategory.name}` : "Select Issue Category *"}
                               </Text>
                          </Pressable>
-
-                         {/* Title */}
-                         <InputElement placeholder="Issue Title *" text={title} onChange={setTitle} />
+                         
+                         {/* Priority Selection */}
+                         <Pressable style={styles.categorySelector} onPress={() => setShowPriorityModal(true)}>
+                              <Text style={[mainStyles.normalText, { color: selectedPriority ? "#000" : "#999" }]}>
+                                   {selectedPriority ? `${selectedPriority}` : "Select Issue Priority *"}
+                              </Text>
+                         </Pressable>
 
                          {/* Description */}
                          <InputElement isTextArea placeholder="Describe the issue in detail *" text={description} onChange={setDescription} />
-
-                         {/* Location Info */}
-                         <View style={styles.locationInfo}>
-                              <Text style={[mainStyles.normalText, { fontWeight: "600" }]}>📍 Location</Text>
-                              {loadingLocation ? (
-                                   <ActivityIndicator size="small" color={MainColors["Primary Blue"]} />
-                              ) : location ? (
-                                   <View style={{ marginTop: 5 }}>
-                                        <Text style={[mainStyles.normalText, { fontSize: 12 }]}>{location.address}</Text>
-                                        <Text style={[mainStyles.normalText, { fontSize: 11, color: "#666" }]}>{location.district}, {location.sector}</Text>
-                                   </View>
-                              ) : (
-                                   <Text style={[mainStyles.normalText, { fontSize: 12, color: "#999" }]}>Location not available</Text>
-                              )}
-                              <Pressable onPress={getLocation} style={{ marginTop: 10 }}>
-                                   <Text style={[mainStyles.normalText, { color: MainColors["Primary Blue"], fontSize: 12 }]}>
-                                        {location ? "Update Location" : "Get Location"}
-                                   </Text>
-                              </Pressable>
-                         </View>
                     </View>
 
                     <Text style={[mainStyles.normalText, { fontSize: 12, color: "#666", textAlign: "center" }]}>* Required fields</Text>
 
-                    <MainButton isDark isFullWidth title="Continue to Add Photos" toDo={handleContinue} />
+                    {lodingSubmit ? ( 
+                         <ActivityIndicator color={MainColors["Almost Black"]} /> 
+                    ) : 
+                         <MainButton isDark isFullWidth title="Continue to Add Photos" toDo={handleContinue} />
+                    }
                </View>
 
                <CategoryModal />
+               <PriorityModal />
           </ScrollView>
      );
 }
@@ -229,11 +265,11 @@ const styles = StyleSheet.create({
           flex: 1,
           // justifyContent: "flex-end",
           backgroundColor: "rgba(0,0,0,0.5)",
+          justifyContent: 'center'
      },
      modalContent: {
           backgroundColor: MainColors["Main Background"],
-          borderTopLeftRadius: 20,
-          borderTopRightRadius: 20,
+          borderRadius: 20,
           padding: 20,
           maxHeight: "80%",
      },

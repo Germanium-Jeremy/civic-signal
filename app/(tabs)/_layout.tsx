@@ -75,6 +75,7 @@ const styles = StyleSheet.create({
           paddingHorizontal: 20,
           backgroundColor: MainColors["Almost Black"],
           paddingTop: 5,
+          marginBottom: 20,
      },
      report: {
           borderRadius: 50,

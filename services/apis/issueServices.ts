@@ -4,7 +4,7 @@ import api, { TokenManager } from "./config";
 
 export const getDeviceInfo = () => {
      return {
-          devideId: Device.modelId || "Unknown",
+          deviceId: Device.modelId || "Unknown",
           deviceModel: `${Device.manufacturer} ${Device.modelName}`,
           osVersion: `${Device.osName} ${Device.osVersion}`,
           appVersion: Application.nativeApplicationVersion || '1.0.0'
@@ -29,6 +29,22 @@ export const IssueService = {
      },
 
      /**
+      * Append photos to an existing issue
+      */
+     updateIssuePhotos: async (issueId: string, photos: Array<{ url: string; thumbnailUrl?: string; size?: number; mimeType?: string }>) => {
+          try {
+               const response = await api.patch(`/issues/${issueId}`, { photos });
+               return { success: true, data: response.data };
+          } catch (error: any) {
+               console.warn("Error updating issue photos: ", error)
+               return {
+                    success: false,
+                    error: error.response?.data?.error || 'Failed to update issue photos',
+               };
+          }
+     },
+
+     /**
       * Upload photos (base64 format for mobile)
       * Returns URLs to use in issue creation
       */
@@ -48,14 +64,19 @@ export const IssueService = {
       * Create new issue report
       * Requires authentication
       */
-     createIssue: async (issueData: { title: string; description: string; category: string; priority?: string;
-          location: { latitude: number; longitude: number; address?: string; district?: string; sector?: string };
+     createIssue: async (issueData: { title?: string; description?: string; category: string; priority?: string;
+          location?: { latitude: number; longitude: number; address?: string; district?: string; sector?: string };
           photos?: Array<{ url: string; thumbnailUrl: string }>;
      }) => {
           try {
                const deviceInfo = getDeviceInfo();
 
-               const response = await api.post("/issues", {...issueData, deviceInfo });
+               // Only include location if provided
+               const payload: any = { ...issueData, deviceInfo };
+               if (!issueData.location) {
+                    delete payload.location;
+               }
+               const response = await api.post("/issues", payload);
 
                return { success: true, data: response.data };
           } catch (error: any) {
@@ -87,7 +108,7 @@ export const IssueService = {
       * Get user's own issues
       * Optionally filter by status
       */
-     getMyIssues: async (filters?: { status?: | "submitted" | "acknowledged" | "in_progress" | "resolved" | "closed"; page?: number; limit?: number }) => {
+     getMyIssues: async (filters?: { status?: | "submitted" | "acknowledged" | "pending" | "resolved"; page?: number; limit?: number }) => {
           try {
                const user = await TokenManager.getUserData();
                if (!user) return { success: false, error: "User not authenticated" };

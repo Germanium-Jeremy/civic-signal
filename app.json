@@ -13,6 +13,9 @@
       "bundleIdentifier": "com.djeremiah.civicsignal",
       "infoPlist": {
         "ITSAppUsesNonExemptEncryption": false
+      },
+      "config": {
+        "googleMapsApiKey": "AIzaSyBFEdxmSoipOopC45h5vZHiSbZ5pM0IK5o"
       }
     },
     "android": {
@@ -24,11 +27,21 @@
       },
       "edgeToEdgeEnabled": true,
       "predictiveBackGestureEnabled": false,
-      "package": "com.djeremiah.civicsignal"
+      "package": "com.djeremiah.civicsignal",
+      "config": {
+        "googleMaps": {
+          "apiKey": "AIzaSyBFEdxmSoipOopC45h5vZHiSbZ5pM0IK5o"
+        }
+      }
     },
     "web": {
       "output": "static",
-      "favicon": "./assets/images/favicon.png"
+      "favicon": "./assets/images/favicon.png",
+      "config": {
+        "googleMaps": {
+          "apiKey": "AIzaSyBFEdxmSoipOopC45h5vZHiSbZ5pM0IK5o"
+        }
+      }
     },
     "plugins": [
       "expo-router",

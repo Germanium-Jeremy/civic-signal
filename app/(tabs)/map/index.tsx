@@ -2,7 +2,7 @@ import { MainColors } from "@/constants/theme";
 import { useStylesGlobal } from "@/hooks/use-styles-global";
 import { Ionicons } from "@expo/vector-icons";
 import { useRef, useState } from "react";
-import MapView, { Marker } from 'react-native-maps'
+// import MapView, { Marker } from 'react-native-maps'
 import { Animated, Pressable, StyleSheet, Text, TextInput, View, Modal } from "react-native";
 
 interface Issue {
@@ -64,68 +64,68 @@ export default function MapScreen() {
           )
      }
 
-     const Key = () => {
-          const KeyDetailsOpacity = animation.interpolate({
-               inputRange: [0, 1],
-               outputRange: [0, 1]
-          })
+     // const Key = () => {
+     //      const KeyDetailsOpacity = animation.interpolate({
+     //           inputRange: [0, 1],
+     //           outputRange: [0, 1]
+     //      })
 
-          return (
-               <Pressable style={[styles.keyContainer]} onPress={toggleKeyDetails}>
-                    {!viewKeyDetails && <Ionicons name="key" color={MainColors["Main Background"]} size={30} />}
+     //      return (
+     //           <Pressable style={[styles.keyContainer]} onPress={toggleKeyDetails}>
+     //                {!viewKeyDetails && <Ionicons name="key" color={MainColors["Main Background"]} size={30} />}
 
-                    {viewKeyDetails && (
-                         <Animated.View style={{ gap: 5, opacity: KeyDetailsOpacity }}>
-                              <View style={{ flexDirection: 'row', gap: '10', alignItems: 'center' }}>
-                                   <Ionicons name="alert-circle" color={MainColors["Error red"]} size={20} />
-                                   <Text style={{ fontSize: 14, fontFamily: 'EBGaramond', fontWeight: 500, color: MainColors["Main Background"] }}>Submitted Issues</Text>
-                              </View>
-                              <View style={{ flexDirection: 'row', gap: '10', alignItems: 'center' }}>
-                                   <Ionicons name="alert-circle" color={'orange'} size={20} />
-                                   <Text style={{ fontSize: 14, fontFamily: 'EBGaramond', fontWeight: 500, color: MainColors["Main Background"] }}>Acknowledged Issues</Text>
-                              </View>
-                              <View style={{ flexDirection: 'row', gap: '10', alignItems: 'center' }}>
-                                   <Ionicons name="alert-circle" color={'yellow'} size={20} />
-                                   <Text style={{ fontSize: 14, fontFamily: 'EBGaramond', fontWeight: 500, color: MainColors["Main Background"] }}>Pending Issues</Text>
-                              </View>
-                              <View style={{ flexDirection: 'row', gap: '10', alignItems: 'center' }}>
-                                   <Ionicons name="checkmark-circle" color={MainColors["Accent Green"]} size={20} />
-                                   <Text style={{ fontSize: 14, fontFamily: 'EBGaramond', fontWeight: 500, color: MainColors["Main Background"] }}>Resolved Issues</Text>
-                              </View>
-                         </Animated.View>
-                    )}
-               </Pressable>
-          )
-     }
+     //                {viewKeyDetails && (
+     //                     <Animated.View style={{ gap: 5, opacity: KeyDetailsOpacity }}>
+     //                          <View style={{ flexDirection: 'row', gap: '10', alignItems: 'center' }}>
+     //                               <Ionicons name="alert-circle" color={MainColors["Error red"]} size={20} />
+     //                               <Text style={{ fontSize: 14, fontFamily: 'EBGaramond', fontWeight: 500, color: MainColors["Main Background"] }}>Submitted Issues</Text>
+     //                          </View>
+     //                          <View style={{ flexDirection: 'row', gap: '10', alignItems: 'center' }}>
+     //                               <Ionicons name="alert-circle" color={'orange'} size={20} />
+     //                               <Text style={{ fontSize: 14, fontFamily: 'EBGaramond', fontWeight: 500, color: MainColors["Main Background"] }}>Acknowledged Issues</Text>
+     //                          </View>
+     //                          <View style={{ flexDirection: 'row', gap: '10', alignItems: 'center' }}>
+     //                               <Ionicons name="alert-circle" color={'yellow'} size={20} />
+     //                               <Text style={{ fontSize: 14, fontFamily: 'EBGaramond', fontWeight: 500, color: MainColors["Main Background"] }}>Pending Issues</Text>
+     //                          </View>
+     //                          <View style={{ flexDirection: 'row', gap: '10', alignItems: 'center' }}>
+     //                               <Ionicons name="checkmark-circle" color={MainColors["Accent Green"]} size={20} />
+     //                               <Text style={{ fontSize: 14, fontFamily: 'EBGaramond', fontWeight: 500, color: MainColors["Main Background"] }}>Resolved Issues</Text>
+     //                          </View>
+     //                     </Animated.View>
+     //                )}
+     //           </Pressable>
+     //      )
+     // }
      
-     const handleMarkerPress = (issue: Issue) => {
-          setSelectedIssue(issue);
-          setModelVisible(true);
-     };
+     // const handleMarkerPress = (issue: Issue) => {
+     //      setSelectedIssue(issue);
+     //      setModelVisible(true);
+     // };
 
-     const closeModal = () => {
-          setModelVisible(false);
-          setSelectedIssue(null);
-     };
+     // const closeModal = () => {
+     //      setModelVisible(false);
+     //      setSelectedIssue(null);
+     // };
 
-     const Map = () => {
-          return (
-               <View style={[styles.map]}>
-                    <Key />
+     // const Map = () => {
+     //      return (
+     //           <View style={[styles.map]}>
+     //                <Key />
 
-                    <MapView style={StyleSheet.absoluteFill}
-                         initialRegion={{ latitude: -1.9499, longitude: 30.0588, latitudeDelta: 2, longitudeDelta: 3 }}
-                         showsUserLocation showsMyLocationButton
-                    >
-                         {mockMapIssues.map((issue) => (
-                              <Marker key={issue.id} coordinate={{ latitude: issue.coordinates.lat, longitude: issue.coordinates.lng }}
-                                   pinColor={'red'} onPress={() => handleMarkerPress(issue)}
-                              />
-                         ))}
-                    </MapView>
-               </View>
-          )
-     }
+     //                <MapView style={StyleSheet.absoluteFill}
+     //                     initialRegion={{ latitude: -1.9499, longitude: 30.0588, latitudeDelta: 2, longitudeDelta: 3 }}
+     //                     showsUserLocation showsMyLocationButton
+     //                >
+     //                     {mockMapIssues.map((issue) => (
+     //                          <Marker key={issue.id} coordinate={{ latitude: issue.coordinates.lat, longitude: issue.coordinates.lng }}
+     //                               pinColor={'red'} onPress={() => handleMarkerPress(issue)}
+     //                          />
+     //                     ))}
+     //                </MapView>
+     //           </View>
+     //      )
+     // }
      
      const handlePressOutside = () => {
           if (viewKeyDetails) toggleKeyDetails()
@@ -136,7 +136,7 @@ export default function MapScreen() {
                <View style={[mainStyles.pages]}>
                     <SearchBar />
                
-                    <Map />
+                    {/* <Map /> */}
                </View>
           </Pressable>
      )
