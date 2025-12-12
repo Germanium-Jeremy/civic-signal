@@ -149,9 +149,8 @@ export const IssueService = {
                     total: issues.length,
                     submitted: issues.filter((i: any) => i.status === "submitted").length,
                     acknowledged: issues.filter((i: any) => i.status === "acknowledged").length,
-                    inProgress: issues.filter((i: any) => i.status === "in_progress").length,
+                    inProgress: issues.filter((i: any) => i.status === "pending").length,
                     resolved: issues.filter((i: any) => i.status === "resolved").length,
-                    closed: issues.filter((i: any) => i.status === "closed").length,
                };
 
                return { success: true, data: stats };

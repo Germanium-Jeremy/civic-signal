@@ -103,9 +103,8 @@ export default function HomeScreen() {
                switch (status) {
                     case "submitted": return MainColors["Error red"];
                     case "acknowledged": return MainColors["Warning Yellow"];
-                    case "in_progress": return "#FFD700";
+                    case "pending": return "#FFD700";
                     case "resolved": return "#32CD32";
-                    case "closed": return "#808080";
                     default: return "#000000";
                }
           };
