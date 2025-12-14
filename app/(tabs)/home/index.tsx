@@ -7,13 +7,7 @@ import { IssueService } from "@/services/apis/issueServices";
 import { Ionicons } from "@expo/vector-icons";
 import { useFocusEffect, useRouter } from "expo-router";
 import { useCallback, useState } from "react";
-import { FlatList, Image, Pressable, RefreshControl, StyleSheet, Text, View } from "react-native";
-
-const issuesDammy = [
-     { id: 1, title: 'This is a title', date: 'This is a date' },
-     { id: 2, title: 'This is a title', date: 'This is a date' },
-     { id: 3, title: 'This is a title', date: 'This is a date' },
-]
+import { ActivityIndicator, FlatList, Image, Pressable, RefreshControl, StyleSheet, Text, View } from "react-native";
 
 export default function HomeScreen() {
      const mainStyles = useStylesGlobal()
@@ -22,9 +16,9 @@ export default function HomeScreen() {
      const [stats, setStats] = useState({ total: 0, submitted: 0, resolved: 0, inProgress: 0 })
      const [resentIssue, setRecentIssue] = useState<any[]>([])
      const [loading, setLoading] = useState(true)
-     const [refreshing, setRefreshing] = useState(false)
 
      const fetchData = async () => {
+          setLoading(true)
           try {
                const user = await AuthService.getCurrentUser() as UserDataInterface;
                setUserData(user);
@@ -45,7 +39,6 @@ export default function HomeScreen() {
                console.error('Error fetching data:', error);
           } finally {
                setLoading(false);
-               setRefreshing(false);
           }
      };
 
@@ -55,11 +48,6 @@ export default function HomeScreen() {
                fetchData();
           }, [])
      );
-
-     const onRefresh = () => {
-          setRefreshing(true);
-          fetchData();
-     };
 
      const Statistics = () => {
           return (
@@ -113,7 +101,7 @@ export default function HomeScreen() {
                <Pressable style={styles.issie} onPress={() => navigate.push({ pathname: "/(tabs)/issues/details", params: { issueId: item._id } })}>
                     <View style={[styles.statusDot, { backgroundColor: getStatusColor(item.status) }]} />
                     <View>
-                         <Text style={[mainStyles.authTitles, { fontSize: 18, fontWeight: 800, textAlign: 'left' }]}>{item.category.charAt(0).toUpperCase() + item.category.slice(1)}, {truncateText(item.description, 15)}</Text>
+                         <Text style={[mainStyles.authTitles, { fontSize: 18, fontWeight: 800, textAlign: 'left' }]}>{item.category.charAt(0).toUpperCase() + item.category.slice(1).replace("_", " ")}, {truncateText(item.description, 15)}</Text>
                          <Text style={[mainStyles.normalText]}>Submitted at: {formatDate(item.submittedAt)}</Text>
                     </View>
                </Pressable>
@@ -132,17 +120,17 @@ export default function HomeScreen() {
      };
 
      return (
-          <View style={[mainStyles.pages]}>
-               <RefreshControl refreshing={refreshing} onRefresh={fetchData} />
-               
-               <Text style={[mainStyles.authTitles, { textAlign: 'left', fontFamily: 'EBGaramondBold', marginBottom: 5 }]}>Welcome {UserData?.fullName.split(" ")[1]}</Text>
-               
-               <Statistics />
-               
-               <Text style={[mainStyles.authTitles, { textAlign: 'left', fontFamily: 'EBGaramondBold', marginTop: 10 }]}>Previous Issues</Text>
+          loading ? <ActivityIndicator size="large" color={MainColors["Almost Black"]} /> : (
+               <View style={[mainStyles.pages]}>
+                    <Text style={[mainStyles.authTitles, { textAlign: 'left', fontFamily: 'EBGaramondBold', marginBottom: 5 }]}>Welcome {UserData?.fullName.split(" ")[1]}</Text>
+                    
+                    <Statistics />
+                    
+                    <Text style={[mainStyles.authTitles, { textAlign: 'left', fontFamily: 'EBGaramondBold', marginTop: 10 }]}>Previous Issues</Text>
 
-               {resentIssue.length > 0 ? <IssuesDisplay /> : <NoIssuesYet />}
-          </View>
+                    {resentIssue.length > 0 ? <IssuesDisplay /> : <NoIssuesYet />}
+               </View>
+          )
      )
 }
 
