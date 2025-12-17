@@ -1,110 +1,197 @@
 import { MainColors } from "@/constants/theme";
 import { useStylesGlobal } from "@/hooks/use-styles-global";
-import { FlatList, Image, Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
+import { IssueService } from "@/services/apis/issueServices";
+import { formatDate } from "@/services/apis/functions";
+import { Ionicons } from "@expo/vector-icons";
+import { useLocalSearchParams, useRouter } from "expo-router";
+import { useEffect, useState } from "react";
+import { ActivityIndicator, FlatList, Image, Pressable, ScrollView, StyleSheet, Text, View, Alert } from "react-native";
+import { Image as ExpoImage } from 'expo-image';
 
-const issuesDammy = {
-     submitted: [
-          { id: 1, title: 'This is a title', date: 'This is a date' },
-          { id: 2, title: 'This is a title', date: 'This is a date' },
-          { id: 3, title: 'This is a title', date: 'This is a date' },
-     ],
-     acknowledged: [
-          { id: 1, title: 'This is a title', date: 'This is a date' },
-          { id: 2, title: 'This is a title', date: 'This is a date' },
-          { id: 3, title: 'This is a title', date: 'This is a date' },
-     ],
-     pending: [
-          { id: 1, title: 'This is a title', date: 'This is a date' },
-          { id: 2, title: 'This is a title', date: 'This is a date' },
-          { id: 3, title: 'This is a title', date: 'This is a date' },     
-     ],
-     resolved: [
-          { id: 1, title: 'This is a title', date: 'This is a date' },
-          { id: 2, title: 'This is a title', date: 'This is a date' },
-          { id: 3, title: 'This is a title', date: 'This is a date' },          
-     ]
+interface Issue {
+     _id: string;
+     title: string;
+     description: string;
+     category: string;
+     priority: string;
+     status: string;
+     trackingNumber: string;
+     submittedAt: string;
+     location?: {
+          address: string;
+          district?: string;
+          sector?: string;
+     };
+     photos?: Array<{
+          url: string;
+          thumbnailUrl?: string;
+     }>;
+     reportedBy?: {
+          fullName: string;
+          email: string;
+     };
 }
 
 export default function IssueDetailsScreen() {
      const mainStyles = useStylesGlobal()
+     const { id } = useLocalSearchParams<{ id: string }>()
+     const router = useRouter()
+     const [issue, setIssue] = useState<Issue | null>(null)
+     const [loading, setLoading] = useState(true)
+     const [error, setError] = useState<string | null>(null)
 
-     const CurrentStatus = () => {
+     useEffect(() => {
+          const fetchIssueDetails = async () => {
+               if (!id) {
+                    setError('Issue ID not provided')
+                    setLoading(false)
+                    return
+               }
+
+               try {
+                    setLoading(true)
+                    const response = await IssueService.getIssue(id)
+                    if (response.success) {
+                         setIssue(response.data.data.issue)
+                    } else {
+                         setError(response.error || 'Failed to fetch issue details')
+                    }
+               } catch (err) {
+                    console.error('Error fetching issue details:', err)
+                    setError('Failed to fetch issue details')
+               } finally {
+                    setLoading(false)
+               }
+          }
+
+          fetchIssueDetails()
+     }, [id])
+
+     const getStatusColor = (status: string) => {
+          const colors = {
+               submitted: MainColors["Error red"],
+               acknowledged: MainColors["Warning Yellow"],
+               pending: MainColors["Warning Yellow"],
+               resolved: MainColors["Accent Green"]
+          };
+          return colors[status as keyof typeof colors] || MainColors["Neutral Gray"];
+     };
+
+     const getPriorityColor = (priority: string) => {
+          const colors = {
+               low: MainColors["Accent Green"],
+               medium: MainColors["Warning Yellow"],
+               high: MainColors["Error red"],
+               urgent: MainColors["Almost Black"]
+          };
+          return colors[priority as keyof typeof colors] || MainColors["Neutral Gray"];
+     };
+
+     const MediaGallery = ({ photos }: { photos?: Array<{ url: string; thumbnailUrl?: string }> }) => {
+          if (!photos || photos.length === 0) return null;
+
           return (
-               <View style={[styles.currentStatus]}>
-                    <View style={[styles.status]}></View>
-                    <Text style={[mainStyles.normalText]}>Resolved</Text>
-               </View>
-          )
-     }
-
-     const IndividualIssue = (issue: any) => {
-          return (
-               <Pressable style={styles.issie}>
-                    <Image source={require("@/assets/images/civic-signal.png")} resizeMode="contain" style={[styles.issueIcon]} />
-
-                    <View>
-                         <Text style={[mainStyles.authTitles, { fontSize: 18, fontWeight: 800 }]}>{ issue.issue.title }</Text>
-                         <Text style={[mainStyles.normalText]}>{ issue.issue.date }</Text>
-                    </View>
-               </Pressable>
-          )
-     }
-     
-     const IndividualHistory = (issue: any) => {
-          return (
-               <Pressable style={[styles.hist]} key={issue}>
-                    <Image source={require("@/assets/images/civic-signal.png")} resizeMode="contain" style={[styles.issueIcon]} />
-
-                    <View>
-                         <Text style={[mainStyles.authTitles, { fontSize: 18, fontWeight: 800 }]}>{ issue.issue.title }</Text>
-                         <Text style={[mainStyles.normalText]}>{ issue.issue.date }</Text>
-                    </View>
-               </Pressable>
-          )
-     }
-
-     const Comments = () => {
-          return (
-               <View style={[styles.comments]}>
-                    <Text style={[mainStyles.authTitles, styles.title]}>Comments Given By Authorities</Text>
-
-                    <View>
-                         {issuesDammy.resolved.map((issue) => (
-                              <IndividualIssue issue={issue} />
+               <View style={styles.mediaContainer}>
+                    <Text style={[mainStyles.authTitles, styles.sectionTitle]}>Media Files</Text>
+                    <ScrollView horizontal showsHorizontalScrollIndicator={false}>
+                         {photos.map((photo, index) => (
+                              <View key={index} style={styles.mediaItem}>
+                                   <ExpoImage
+                                        source={photo.url}
+                                        style={styles.mediaImage}
+                                        contentFit="cover"
+                                        placeholder={require("@/assets/images/civic-signal.png")}
+                                        placeholderContentFit="contain"
+                                   />
+                              </View>
                          ))}
-                    </View>
+                    </ScrollView>
                </View>
-          )
-     }
-     
-     const History = () => {
-          return (
-               <View style={[styles.history]}>
-                    <Text style={[mainStyles.authTitles, styles.title2]}>Comments Given By Authorities</Text>
+          );
+     };
 
-                    <View>
-                         {issuesDammy.resolved.map((issue) => (
-                              <IndividualHistory issue={issue} />
-                         ))}
-                    </View>
+     if (loading) {
+          return (
+               <View style={[mainStyles.pages, styles.loadingContainer]}>
+                    <ActivityIndicator size="large" color={MainColors["Primary Blue"]} />
+                    <Text style={[mainStyles.normalText, { marginTop: 10 }]}>Loading issue details...</Text>
                </View>
-          )
+          );
+     }
+
+     if (error || !issue) {
+          return (
+               <View style={[mainStyles.pages, styles.errorContainer]}>
+                    <Ionicons name="alert-circle" size={48} color={MainColors["Error red"]} />
+                    <Text style={[mainStyles.normalText, { color: MainColors["Error red"], marginTop: 10 }]}>
+                         {error || 'Issue not found'}
+                    </Text>
+                    <Pressable style={styles.retryButton} onPress={() => router.back()}>
+                         <Text style={[mainStyles.normalText, { color: MainColors["Primary Blue"] }]}>Go Back</Text>
+                    </Pressable>
+               </View>
+          );
      }
 
      return (
           <ScrollView style={[mainStyles.pages, styles.container]}>
-               <Text style={[mainStyles.authTitles]}>Issue type or title</Text>
+               {/* Issue Title and Category */}
+               <View style={styles.header}>
+                    <Text style={[mainStyles.authTitles, styles.title]}>{issue.category}</Text>
+                    <Text style={[mainStyles.normalText, styles.subtitle]}>{issue.title}</Text>
+               </View>
 
-               <Text style={[mainStyles.normalText, { marginVertical: 30 }]}>
-                    This is the description of a certain issue that was submitted by a certain user who is supposed to be seeing it only because he is
-                    the one who reported it. There can be long text given here...
-               </Text>
+               {/* Description */}
+               <View style={styles.section}>
+                    <Text style={[mainStyles.authTitles, styles.sectionTitle]}>Description</Text>
+                    <Text style={[mainStyles.normalText, styles.description]}>
+                         {issue.description || 'No description provided'}
+                    </Text>
+               </View>
 
-               <CurrentStatus />
+               {/* Tracking Number and Date */}
+               <View style={styles.infoRow}>
+                    <View style={styles.infoItem}>
+                         <Text style={[mainStyles.normalText, styles.infoLabel]}>Tracking #</Text>
+                         <Text style={[mainStyles.normalText, styles.infoValue]}>{issue.trackingNumber}</Text>
+                    </View>
+                    <View style={styles.infoItem}>
+                         <Text style={[mainStyles.normalText, styles.infoLabel]}>Reported</Text>
+                         <Text style={[mainStyles.normalText, styles.infoValue]}>{formatDate(issue.submittedAt)}</Text>
+                    </View>
+               </View>
 
-               <Comments />
-               
-               <History />
+               {/* Status and Priority */}
+               <View style={styles.statusContainer}>
+                    <View style={styles.statusItem}>
+                         <View style={[styles.statusDot, { backgroundColor: getStatusColor(issue.status) }]} />
+                         <Text style={[mainStyles.normalText, { textTransform: 'capitalize' }]}>{issue.status}</Text>
+                    </View>
+                    <View style={styles.statusItem}>
+                         <View style={[styles.priorityDot, { backgroundColor: getPriorityColor(issue.priority) }]} />
+                         <Text style={[mainStyles.normalText, { textTransform: 'capitalize' }]}>{issue.priority} Priority</Text>
+                    </View>
+               </View>
+
+               {/* Location */}
+               {issue.location && (
+                    <View style={styles.section}>
+                         <Text style={[mainStyles.authTitles, styles.sectionTitle]}>Location</Text>
+                         <Text style={[mainStyles.normalText, styles.locationText]}>
+                              {issue.location.address}
+                         </Text>
+                         {(issue.location.district || issue.location.sector) && (
+                              <Text style={[mainStyles.normalText, styles.locationDetails]}>
+                                   {issue.location.district && `${issue.location.district}`}
+                                   {issue.location.district && issue.location.sector && ', '}
+                                   {issue.location.sector && issue.location.sector}
+                              </Text>
+                         )}
+                    </View>
+               )}
+
+               {/* Media Gallery */}
+               <MediaGallery photos={issue.photos} />
 
                <View style={{ paddingVertical: 20 }}></View>
           </ScrollView>
@@ -117,73 +204,119 @@ const styles = StyleSheet.create({
           flexDirection: 'column',
           gap: 20,
      },
-     currentStatus: {
-          borderRadius: 50,
-          paddingVertical: 10,
-          paddingHorizontal: 20,
-          backgroundColor: MainColors["Light Gray"],
-          alignSelf: 'center',
-          flexDirection: 'row',
+     loadingContainer: {
+          flex: 1,
+          justifyContent: 'center',
           alignItems: 'center',
-          gap: 10,
      },
-     status: {
-          height: 20,
-          width: 20,
-          borderRadius: 10,
-          backgroundColor: MainColors['Error red']
+     errorContainer: {
+          flex: 1,
+          justifyContent: 'center',
+          alignItems: 'center',
+          padding: 20,
      },
-     comments: {
-          borderRadius: 20,
-          paddingHorizontal: 10,
-          paddingVertical: 20,
-          backgroundColor: MainColors["Almost Black"],
-          marginVertical: 20,
-     },
-     history: {
-          borderRadius: 20,
-          paddingHorizontal: 10,
-          paddingVertical: 20,
+     retryButton: {
+          marginTop: 20,
+          padding: 10,
           backgroundColor: MainColors["Light Gray"],
+          borderRadius: 20,
+     },
+     header: {
           marginBottom: 10,
      },
      title: {
-          color: MainColors["Main Background"],
-          fontSize: 22,
-          borderBottomWidth: 1,
-          borderColor: MainColors["Main Background"],
-          paddingBottom: 5,
-     },
-     title2: {
+          fontSize: 24,
+          fontWeight: 'bold',
           color: MainColors["Almost Black"],
-          fontSize: 22,
-          borderBottomWidth: 1,
-          borderColor: MainColors["Almost Black"],
-          paddingBottom: 5,
+          marginBottom: 5,
      },
-     issie: {
-          borderRadius: 20,
+     subtitle: {
+          fontSize: 18,
+          color: MainColors["Neutral Gray"],
+     },
+     section: {
           backgroundColor: MainColors["Light Gray"],
-          flexDirection: 'row',
-          gap: 10,
-          alignItems: 'center',
-          paddingVertical: 5,
-          paddingHorizontal: 10,
-          marginVertical: 5
+          borderRadius: 15,
+          padding: 15,
+          marginBottom: 15,
      },
-     hist: {
-          borderRadius: 20,
-          backgroundColor: MainColors["Main Background"],
-          flexDirection: 'row',
-          gap: 10,
-          alignItems: 'center',
-          paddingVertical: 5,
-          paddingHorizontal: 10,
-          marginVertical: 5
+     sectionTitle: {
+          fontSize: 18,
+          fontWeight: '600',
+          color: MainColors["Almost Black"],
+          marginBottom: 10,
      },
-     issueIcon: {
-          width: 40,
-          height: 40,
-          borderRadius: 50,
+     description: {
+          fontSize: 16,
+          lineHeight: 24,
+          color: MainColors["Almost Black"],
+     },
+     infoRow: {
+          flexDirection: 'row',
+          justifyContent: 'space-between',
+          backgroundColor: MainColors["Light Gray"],
+          borderRadius: 15,
+          padding: 15,
+          marginBottom: 15,
+     },
+     infoItem: {
+          flex: 1,
+     },
+     infoLabel: {
+          fontSize: 12,
+          color: MainColors["Neutral Gray"],
+          marginBottom: 5,
+     },
+     infoValue: {
+          fontSize: 16,
+          fontWeight: '500',
+          color: MainColors["Almost Black"],
+     },
+     statusContainer: {
+          flexDirection: 'row',
+          justifyContent: 'space-around',
+          backgroundColor: MainColors["Light Gray"],
+          borderRadius: 15,
+          padding: 15,
+          marginBottom: 15,
+     },
+     statusItem: {
+          flexDirection: 'row',
+          alignItems: 'center',
+          gap: 8,
+     },
+     statusDot: {
+          width: 12,
+          height: 12,
+          borderRadius: 6,
+     },
+     priorityDot: {
+          width: 12,
+          height: 12,
+          borderRadius: 6,
+     },
+     locationText: {
+          fontSize: 16,
+          fontWeight: '500',
+          color: MainColors["Almost Black"],
+          marginBottom: 5,
+     },
+     locationDetails: {
+          fontSize: 14,
+          color: MainColors["Neutral Gray"],
+     },
+     mediaContainer: {
+          backgroundColor: MainColors["Light Gray"],
+          borderRadius: 15,
+          padding: 15,
+          marginBottom: 15,
+     },
+     mediaItem: {
+          marginRight: 10,
+     },
+     mediaImage: {
+          width: 120,
+          height: 120,
+          borderRadius: 10,
      },
 })

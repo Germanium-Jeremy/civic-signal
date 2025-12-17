@@ -85,7 +85,7 @@ export default function IssuesScreen() {
      const IndividualIssue = ({ item }: { item: any }) => {
 
           return (
-               <Pressable style={styles.issie} onPress={() => navigate.push({ pathname: "/(tabs)/issues/details", params: { issueId: item._id } })}>
+               <Pressable style={styles.issie} onPress={() => navigate.push({ pathname: "/(tabs)/issues/details", params: { id: item._id } })}>
                     <Image source={require("@/assets/images/civic-signal.png")} resizeMode="contain" style={[styles.issueIcon]} />
 
                     <View>

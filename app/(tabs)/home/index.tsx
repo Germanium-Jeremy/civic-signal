@@ -98,7 +98,7 @@ export default function HomeScreen() {
           };
 
           return (
-               <Pressable style={styles.issie} onPress={() => navigate.push({ pathname: "/(tabs)/issues/details", params: { issueId: item._id } })}>
+               <Pressable style={styles.issie} onPress={() => navigate.push({ pathname: "/(tabs)/issues/details", params: { id: item._id } })}>
                     <View style={[styles.statusDot, { backgroundColor: getStatusColor(item.status) }]} />
                     <View>
                          <Text style={[mainStyles.authTitles, { fontSize: 18, fontWeight: 800, textAlign: 'left' }]}>{item.category.charAt(0).toUpperCase() + item.category.slice(1).replace("_", " ")}, {truncateText(item.description, 15)}</Text>

@@ -4,9 +4,9 @@ import { Ionicons } from "@expo/vector-icons";
 import { useState } from "react";
 import { Pressable, StyleSheet, Text, TextInput, View } from "react-native";
 import MapComponent from "@/components/MapComponent";
-import IssueDetailsModal from "@/components/IssueDetailsModal";
 import MapLegend from "@/components/MapLegend";
 import { IssueService } from "@/services/apis/issueServices";
+import { useRouter } from "expo-router";
 
 interface Issue {
     id: string;
@@ -23,36 +23,11 @@ interface Issue {
 
 export default function MapScreen() {
      const mainStyles = useStylesGlobal()
-     const [selectedIssue, setSelectedIssue] = useState<Issue | null>(null)
-     const [modalVisible, setModalVisible] = useState(false)
-     const [isUpvoting, setIsUpvoting] = useState(false)
+     const navigate = useRouter()
      const [showLegend, setShowLegend] = useState(false)
 
      const handleMarkerPress = (issue: Issue) => {
-          setSelectedIssue(issue);
-          setModalVisible(true);
-     };
-
-     const closeModal = () => {
-          setModalVisible(false);
-          setSelectedIssue(null);
-     };
-
-     const handleUpvote = async (issueId: string) => {
-          try {
-               setIsUpvoting(true);
-               const result = await IssueService.upvoteIssue(issueId);
-               if (result.success) {
-                    // You could show a success message or update the UI
-                    console.log('Issue upvoted successfully');
-               } else {
-                    console.error('Failed to upvote issue:', result.error);
-               }
-          } catch (error) {
-               console.error('Error upvoting issue:', error);
-          } finally {
-               setIsUpvoting(false);
-          }
+          navigate.push({ pathname: "/(tabs)/issues/details", params: { id: issue.id } });
      };
 
      const SearchBar = () => {
@@ -77,14 +52,6 @@ export default function MapScreen() {
                          <MapComponent onIssuePress={handleMarkerPress} />
                          <MapLegend visible={showLegend} onToggle={() => setShowLegend(!showLegend)} />
                     </View>
-                    
-                    <IssueDetailsModal
-                         visible={modalVisible}
-                         issue={selectedIssue}
-                         onClose={closeModal}
-                         onUpvote={handleUpvote}
-                         isUpvoting={isUpvoting}
-                    />
                </View>
           </Pressable>
      )
