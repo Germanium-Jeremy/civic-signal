@@ -30,7 +30,7 @@ export default function HomeScreen() {
                     }
                }
 
-               const issuesResult = await IssueService.getMyIssues({ limit: 5 });
+               const issuesResult = await IssueService.getMyIssues({ limit: 3 });
                if (issuesResult.success) {
                     setRecentIssue(issuesResult.data.data.issues);
                }

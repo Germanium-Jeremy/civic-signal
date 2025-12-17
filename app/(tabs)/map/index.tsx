@@ -1,59 +1,59 @@
 import { MainColors } from "@/constants/theme";
 import { useStylesGlobal } from "@/hooks/use-styles-global";
 import { Ionicons } from "@expo/vector-icons";
-import { useRef, useState } from "react";
-// import MapView, { Marker } from 'react-native-maps'
-import { Animated, Pressable, StyleSheet, Text, TextInput, View, Modal } from "react-native";
+import { useState } from "react";
+import { Pressable, StyleSheet, Text, TextInput, View } from "react-native";
+import MapComponent from "@/components/MapComponent";
+import IssueDetailsModal from "@/components/IssueDetailsModal";
+import MapLegend from "@/components/MapLegend";
+import { IssueService } from "@/services/apis/issueServices";
 
 interface Issue {
     id: string;
     title: string;
-    location: string;
-    coordinates: { lat: number; lng: number };
     status: string;
     priority: string;
+    location: string;
+    coordinates: { lat: number; lng: number };
     reportedAt: string;
     category: string;
     description: string;
+    trackingNumber?: string;
 }
-
-const mockMapIssues: Issue[] = [
-     {
-          id: "ISS-001",
-          title: "Broken streetlight on Main Street",
-          status: "reported",
-          priority: "medium",
-          location: "Kigali",
-          coordinates: { lat: -1.92935, lng: 30.03485 },
-          reportedAt: "2024-01-20T10:30:00Z",
-          category: "Infrastructure",
-          description: "The streetlight has been flickering and completely went out last night."
-     },
-];
-
-const statusColors = {
-     reported: "#EB3223",
-     acknowledged: "#F29D38",
-     pending: "#FFFD54",
-     resolved: "#75F94C"
-};
-
 
 export default function MapScreen() {
      const mainStyles = useStylesGlobal()
-     const [viewKeyDetails, setViewKeyDetails] = useState(false)
-     const animation = useRef(new Animated.Value(0)).current
      const [selectedIssue, setSelectedIssue] = useState<Issue | null>(null)
-     const [modelVisible, setModelVisible] = useState(false)
+     const [modalVisible, setModalVisible] = useState(false)
+     const [isUpvoting, setIsUpvoting] = useState(false)
+     const [showLegend, setShowLegend] = useState(false)
 
-     const toggleKeyDetails = () => {
-          if (viewKeyDetails) {
-               Animated.timing(animation, { toValue: 0, duration: 300, useNativeDriver: false }).start(() => setViewKeyDetails(false))
-          } else {
-               setViewKeyDetails(true)
-               Animated.timing(animation, { toValue: 1, duration: 300, useNativeDriver: false }).start()
+     const handleMarkerPress = (issue: Issue) => {
+          setSelectedIssue(issue);
+          setModalVisible(true);
+     };
+
+     const closeModal = () => {
+          setModalVisible(false);
+          setSelectedIssue(null);
+     };
+
+     const handleUpvote = async (issueId: string) => {
+          try {
+               setIsUpvoting(true);
+               const result = await IssueService.upvoteIssue(issueId);
+               if (result.success) {
+                    // You could show a success message or update the UI
+                    console.log('Issue upvoted successfully');
+               } else {
+                    console.error('Failed to upvote issue:', result.error);
+               }
+          } catch (error) {
+               console.error('Error upvoting issue:', error);
+          } finally {
+               setIsUpvoting(false);
           }
-     }
+     };
 
      const SearchBar = () => {
           return (
@@ -64,79 +64,27 @@ export default function MapScreen() {
           )
      }
 
-     // const Key = () => {
-     //      const KeyDetailsOpacity = animation.interpolate({
-     //           inputRange: [0, 1],
-     //           outputRange: [0, 1]
-     //      })
-
-     //      return (
-     //           <Pressable style={[styles.keyContainer]} onPress={toggleKeyDetails}>
-     //                {!viewKeyDetails && <Ionicons name="key" color={MainColors["Main Background"]} size={30} />}
-
-     //                {viewKeyDetails && (
-     //                     <Animated.View style={{ gap: 5, opacity: KeyDetailsOpacity }}>
-     //                          <View style={{ flexDirection: 'row', gap: '10', alignItems: 'center' }}>
-     //                               <Ionicons name="alert-circle" color={MainColors["Error red"]} size={20} />
-     //                               <Text style={{ fontSize: 14, fontFamily: 'EBGaramond', fontWeight: 500, color: MainColors["Main Background"] }}>Submitted Issues</Text>
-     //                          </View>
-     //                          <View style={{ flexDirection: 'row', gap: '10', alignItems: 'center' }}>
-     //                               <Ionicons name="alert-circle" color={'orange'} size={20} />
-     //                               <Text style={{ fontSize: 14, fontFamily: 'EBGaramond', fontWeight: 500, color: MainColors["Main Background"] }}>Acknowledged Issues</Text>
-     //                          </View>
-     //                          <View style={{ flexDirection: 'row', gap: '10', alignItems: 'center' }}>
-     //                               <Ionicons name="alert-circle" color={'yellow'} size={20} />
-     //                               <Text style={{ fontSize: 14, fontFamily: 'EBGaramond', fontWeight: 500, color: MainColors["Main Background"] }}>Pending Issues</Text>
-     //                          </View>
-     //                          <View style={{ flexDirection: 'row', gap: '10', alignItems: 'center' }}>
-     //                               <Ionicons name="checkmark-circle" color={MainColors["Accent Green"]} size={20} />
-     //                               <Text style={{ fontSize: 14, fontFamily: 'EBGaramond', fontWeight: 500, color: MainColors["Main Background"] }}>Resolved Issues</Text>
-     //                          </View>
-     //                     </Animated.View>
-     //                )}
-     //           </Pressable>
-     //      )
-     // }
-     
-     // const handleMarkerPress = (issue: Issue) => {
-     //      setSelectedIssue(issue);
-     //      setModelVisible(true);
-     // };
-
-     // const closeModal = () => {
-     //      setModelVisible(false);
-     //      setSelectedIssue(null);
-     // };
-
-     // const Map = () => {
-     //      return (
-     //           <View style={[styles.map]}>
-     //                <Key />
-
-     //                <MapView style={StyleSheet.absoluteFill}
-     //                     initialRegion={{ latitude: -1.9499, longitude: 30.0588, latitudeDelta: 2, longitudeDelta: 3 }}
-     //                     showsUserLocation showsMyLocationButton
-     //                >
-     //                     {mockMapIssues.map((issue) => (
-     //                          <Marker key={issue.id} coordinate={{ latitude: issue.coordinates.lat, longitude: issue.coordinates.lng }}
-     //                               pinColor={'red'} onPress={() => handleMarkerPress(issue)}
-     //                          />
-     //                     ))}
-     //                </MapView>
-     //           </View>
-     //      )
-     // }
-     
      const handlePressOutside = () => {
-          if (viewKeyDetails) toggleKeyDetails()
-     }
-     
+          if (showLegend) setShowLegend(false);
+     };
+
      return (
           <Pressable style={{ flex: 1 }} onPress={handlePressOutside}>
                <View style={[mainStyles.pages]}>
                     <SearchBar />
-               
-                    {/* <Map /> */}
+                    
+                    <View style={styles.mapContainer}>
+                         <MapComponent onIssuePress={handleMarkerPress} />
+                         <MapLegend visible={showLegend} onToggle={() => setShowLegend(!showLegend)} />
+                    </View>
+                    
+                    <IssueDetailsModal
+                         visible={modalVisible}
+                         issue={selectedIssue}
+                         onClose={closeModal}
+                         onUpvote={handleUpvote}
+                         isUpvoting={isUpvoting}
+                    />
                </View>
           </Pressable>
      )
@@ -158,24 +106,11 @@ const styles = StyleSheet.create({
           fontFamily: 'EBGaramond',
           width: '90%'
      },
-     map: {
-          borderRadius: 20,
-          width: '100%',
-          height: '93%',
-          position: 'relative',
+     mapContainer: {
           flex: 1,
+          marginTop: 10,
+          borderRadius: 20,
           overflow: 'hidden',
-     },
-     keyContainer: {
-          position: 'absolute',
-          backgroundColor: MainColors["Almost Black"],
-          paddingVertical: 10,
-          paddingHorizontal: 10,
-          borderRadius: 10,
-          bottom: 80,
-          right: 10,
-          transitionDelay: '',
-          elevation: 5,
-          zIndex: 2,
+          position: 'relative',
      },
 })

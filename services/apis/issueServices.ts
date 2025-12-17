@@ -236,4 +236,20 @@ export const IssueService = {
                };
           }
      },
+
+     /**
+      * Get all public issues for map display
+      * No authentication required
+      */
+     getAllPublicIssues: async (page: number = 1, limit: number = 100) => {
+          try {
+               const response = await api.get(`/issues?page=${page}&limit=${limit}`);
+               return { success: true, data: response.data };
+          } catch (error: any) {
+               return {
+                    success: false,
+                    error: error.response?.data?.error || "Failed to fetch public issues",
+               };
+          }
+     },
 };
