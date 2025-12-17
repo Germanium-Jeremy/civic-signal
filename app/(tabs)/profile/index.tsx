@@ -2,16 +2,33 @@ import { MainColors } from "@/constants/theme";
 import { UserDataInterface } from "@/constants/UserInterface";
 import { useStylesGlobal } from "@/hooks/use-styles-global";
 import { AuthService } from "@/services/apis/authServices";
+import { IssueService } from "@/services/apis/issueServices";
 import { Ionicons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
 import { useEffect, useState } from "react";
-import { Alert, FlatList, Image, Pressable, StyleSheet, Text, View } from "react-native";
+import { Alert, FlatList, Image, Pressable, StyleSheet, Text, View, ActivityIndicator } from "react-native";
 
-const tabs = ["Submitted", "Acknowledged", "Pending", "Resolved"];
+interface UserStats {
+     total: number;
+     submitted: number;
+     acknowledged: number;
+     pending: number;
+     resolved: number;
+}
+
+const tabs = [
+     { key: 'submitted', label: 'Submitted' },
+     { key: 'acknowledged', label: 'Acknowledged' },
+     { key: 'pending', label: 'Pending' },
+     { key: 'resolved', label: 'Resolved' }
+];
 
 export default function ProfileScreen() {
      const mainStyles = useStylesGlobal()
      const [UserData, setUserData] = useState<UserDataInterface | undefined>()
+     const [userStats, setUserStats] = useState<UserStats | null>(null)
+     const [loadingStats, setLoadingStats] = useState(false)
+     const [loadingLogout, setLoadingLogout] = useState(false)
      const navigate = useRouter()
      
      useEffect(() => {
@@ -23,32 +40,101 @@ export default function ProfileScreen() {
           getUserData()
      }, [])
 
-     const handleLogout = async () => {
-          Alert.alert("Warning?",
-               "Are you sure you want to log out?",
-               [{
-                    text: 'Ok',
-                    onPress: async () => {
-                         const result = await AuthService.logout();
-                         if (result.success) navigate.replace("/(auth)/signin")
-                    },
-               }, {
-                    text: 'Cancel',
-                    onPress: () => {
-                         console.log("canceled")
+     useEffect(() => {
+          const fetchUserStats = async () => {
+               if (UserData) {
+                    setLoadingStats(true)
+                    try {
+                         const statsResponse = await IssueService.getMyStats()
+                         if (statsResponse.success) {
+                              setUserStats(statsResponse.data)
+                         }
+                    } catch (error) {
+                         console.error('Failed to fetch user stats:', error)
+                    } finally {
+                         setLoadingStats(false)
                     }
-               }]
+               }
+          }
+
+          fetchUserStats()
+     }, [UserData])
+
+     const handleLogout = async () => {
+          Alert.alert(
+               "Logout",
+               "Choose logout option:",
+               [
+                    {
+                         text: 'Logout All Devices',
+                         onPress: async () => {
+                              setLoadingLogout(true)
+                              try {
+                                   const result = await AuthService.logout(true)
+                                   if (result.success || !result.success) { // Navigate even if API fails
+                                        navigate.replace("/(auth)/signin")
+                                   }
+                              } catch (error) {
+                                   console.error('Logout error:', error)
+                                   navigate.replace("/(auth)/signin") // Still navigate on error
+                              } finally {
+                                   setLoadingLogout(false)
+                              }
+                         },
+                         style: 'destructive'
+                    },
+                    {
+                         text: 'Logout Current Device',
+                         onPress: async () => {
+                              setLoadingLogout(true)
+                              try {
+                                   const result = await AuthService.logout(false)
+                                   if (result.success || !result.success) { // Navigate even if API fails
+                                        navigate.replace("/(auth)/signin")
+                                   }
+                              } catch (error) {
+                                   console.error('Logout error:', error)
+                                   navigate.replace("/(auth)/signin") // Still navigate on error
+                              } finally {
+                                   setLoadingLogout(false)
+                              }
+                         },
+                         style: 'default'
+                    },
+                    {
+                         text: 'Cancel',
+                         onPress: () => console.log('Logout cancelled'),
+                         style: 'cancel'
+                    }
+               ]
           )
      }
 
      const TabSelection = () => {
-          return (
-               <FlatList showsHorizontalScrollIndicator={false} horizontal data={tabs} renderItem={(tab) => (
-                    <View style={[styles.tab]}>
-                         <Text style={[mainStyles.normalText, { color: MainColors["Almost Black"], fontWeight: 500 }]}>{ tab.item }</Text>
-                         <Text style={[mainStyles.normalText, { color: MainColors["Almost Black"], fontWeight: 500, fontSize: 30 }]}>0</Text>
+          if (loadingStats) {
+               return (
+                    <View style={[styles.loadingContainer]}>
+                         <ActivityIndicator size="small" color={MainColors["Primary Blue"]} />
+                         <Text style={[mainStyles.normalText, { color: MainColors["Neutral Gray"], marginLeft: 10 }]}>Loading stats...</Text>
                     </View>
-               )} />
+               )
+          }
+
+          return (
+               <FlatList 
+                    showsHorizontalScrollIndicator={false} 
+                    horizontal 
+                    data={tabs} 
+                    renderItem={(tab) => {
+                         const count = userStats?.[tab.item.key as keyof UserStats] || 0
+                         return (
+                              <View style={[styles.tab]}>
+                                   <Text style={[mainStyles.normalText, { color: MainColors["Almost Black"], fontWeight: 500 }]}>{ tab.item.label }</Text>
+                                   <Text style={[mainStyles.normalText, { color: MainColors["Almost Black"], fontWeight: 500, fontSize: 30 }]}>{ count }</Text>
+                              </View>
+                         )
+                    }} 
+               />
           )
      }
 
@@ -79,9 +165,15 @@ export default function ProfileScreen() {
                          <Text style={[mainStyles.normalText]}>Privacy Policies</Text>
                          <Ionicons name="chevron-forward" size={20} />
                     </View>
-                    <Pressable style={[styles.option]} onPress={handleLogout}>
-                         <Text style={[mainStyles.normalText]}>Logout</Text>
-                         <Ionicons name="chevron-forward" size={20} />
+                    <Pressable style={[styles.option]} onPress={handleLogout} disabled={loadingLogout}>
+                         <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+                              {loadingLogout ? (
+                                   <ActivityIndicator size="small" color={MainColors["Error red"]} />
+                              ) : (
+                                   <Text style={[mainStyles.normalText, { color: MainColors["Error red"] }]}>Logout</Text>
+                              )}
+                         </View>
+                         <Ionicons name="chevron-forward" size={20} color={MainColors["Error red"]} />
                     </Pressable>
                </View>
           </View>
@@ -127,5 +219,11 @@ const styles = StyleSheet.create({
           justifyContent: 'space-between',
           borderColor: MainColors["Almost Black"],
           paddingVertical: 5,
+     },
+     loadingContainer: {
+          flexDirection: 'row',
+          justifyContent: 'center',
+          alignItems: 'center',
+          paddingVertical: 20,
      }
 })

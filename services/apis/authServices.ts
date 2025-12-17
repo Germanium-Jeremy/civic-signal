@@ -105,9 +105,20 @@ export const AuthService = {
           }
      },
 
-     logout: async () => {
-          await TokenManager.clearTokens();
-          return { success: true };
+     logout: async (logoutAll: boolean = false) => {
+          try {
+               const refreshToken = await TokenManager.getRefreshToken();
+               const response = await api.post('/auth/logout', { refreshToken, logoutAll });
+               
+               // Clear local tokens
+               await TokenManager.clearTokens();
+               return { success: true, data: response.data };
+          } catch (error: any) {
+               console.warn("Failed to logout:", error)
+               // Still clear local tokens even if API call fails
+               await TokenManager.clearTokens();
+               return { success: false, error: error.response?.data?.error || 'Logout failed' };
+          }
      },
 
      isLoggedIn: async () => {
