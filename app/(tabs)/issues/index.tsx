@@ -2,32 +2,9 @@ import { MainColors } from "@/constants/theme";
 import { useStylesGlobal } from "@/hooks/use-styles-global";
 import { formatDate, truncateText } from "@/services/apis/functions";
 import { IssueService } from "@/services/apis/issueServices";
-import { router, useFocusEffect, useRouter } from "expo-router";
+import { useFocusEffect, useRouter } from "expo-router";
 import {  useCallback, useState } from "react";
 import { FlatList, Image, Pressable, StyleSheet, Text, View } from "react-native";
-
-const issuesDammy = {
-     submitted: [
-          { id: 1, title: 'This is a title', date: 'This is a date' },
-          { id: 2, title: 'This is a title', date: 'This is a date' },
-          { id: 3, title: 'This is a title', date: 'This is a date' },
-     ],
-     acknowledged: [
-          { id: 1, title: 'This is a title', date: 'This is a date' },
-          { id: 2, title: 'This is a title', date: 'This is a date' },
-          { id: 3, title: 'This is a title', date: 'This is a date' },
-     ],
-     pending: [
-          { id: 1, title: 'This is a title', date: 'This is a date' },
-          { id: 2, title: 'This is a title', date: 'This is a date' },
-          { id: 3, title: 'This is a title', date: 'This is a date' },     
-     ],
-     resolved: [
-          { id: 1, title: 'This is a title', date: 'This is a date' },
-          { id: 2, title: 'This is a title', date: 'This is a date' },
-          { id: 3, title: 'This is a title', date: 'This is a date' },          
-     ]
-}
 
 const tabs = ["Submitted", "Acknowledged", "Pending", "Resolved"];
 
@@ -106,11 +83,17 @@ export default function IssuesScreen() {
           <View style={[mainStyles.pages]}>
                <TabSelection />
                <Text style={[mainStyles.authTitles, { textAlign: "left", fontFamily: "EBGaramondBold", marginTop: 10 }]}>{activeTab} Issues</Text>
-               <FlatList
-                    data={currentData}
-                    renderItem={({ item }) => <IndividualIssue item={item} />}
-                    keyExtractor={(item: any) => item._id}
-               />
+               {currentData.length <= 0 ? (
+                    <View style={{ flex: 0.5, justifyContent: 'center', alignItems: 'center' }}>
+                         <Text style={{ fontSize: 24, textAlign: 'center', fontWeight: 500 }}>There are no issues yet!</Text>
+                    </View>
+               ) : (
+                    <FlatList
+                         data={currentData}
+                         renderItem={({ item }) => <IndividualIssue item={item} />}
+                         keyExtractor={(item: any) => item._id}
+                    />
+               )}
           </View>
      )
 }

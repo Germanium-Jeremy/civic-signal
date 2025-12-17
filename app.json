@@ -1,10 +1,10 @@
 {
   "expo": {
-    "name": "civic-signal",
+    "name": "Civic Signal",
     "slug": "civic-signal",
     "version": "1.0.0",
     "orientation": "portrait",
-    "icon": "./assets/images/icon.png",
+    "icon": "./assets/images/civic-signal.png",
     "scheme": "civicsignal",
     "userInterfaceStyle": "automatic",
     "newArchEnabled": true,
@@ -12,7 +12,9 @@
       "supportsTablet": true,
       "bundleIdentifier": "com.djeremiah.civicsignal",
       "infoPlist": {
-        "ITSAppUsesNonExemptEncryption": false
+        "ITSAppUsesNonExemptEncryption": false,
+        "NSLocationWhenInUseUsageDescription": "This app needs location access to show your location on the map.",
+        "NSLocationAlwaysAndWhenInUseUsageDescription": "This app needs location access to show your location on the map."
       },
       "config": {
         "googleMapsApiKey": ""
@@ -21,13 +23,17 @@
     "android": {
       "adaptiveIcon": {
         "backgroundColor": "#E6F4FE",
-        "foregroundImage": "./assets/images/android-icon-foreground.png",
-        "backgroundImage": "./assets/images/android-icon-background.png",
-        "monochromeImage": "./assets/images/android-icon-monochrome.png"
+        "foregroundImage": "./assets/images/civicsignal.png",
+        "backgroundImage": "./assets/images/civic-signal.png",
+        "monochromeImage": "./assets/images/civicsignal.png"
       },
       "edgeToEdgeEnabled": true,
       "predictiveBackGestureEnabled": false,
       "package": "com.djeremiah.civicsignal",
+      "permissions": [
+        "ACCESS_FINE_LOCATION",
+        "ACCESS_COARSE_LOCATION"
+      ],
       "config": {
         "googleMaps": {
           "apiKey": ""
@@ -36,7 +42,7 @@
     },
     "web": {
       "output": "static",
-      "favicon": "./assets/images/favicon.png",
+      "favicon": "./assets/images/civicsignal.png",
       "config": {
         "googleMaps": {
           "apiKey": ""
@@ -48,7 +54,7 @@
       [
         "expo-splash-screen",
         {
-          "image": "./assets/images/splash-icon.png",
+          "image": "./assets/images/civicsignal.png",
           "imageWidth": 200,
           "resizeMode": "contain",
           "backgroundColor": "#ffffff",

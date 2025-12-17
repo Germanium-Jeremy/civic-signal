@@ -6,6 +6,33 @@ import { MainColors } from '@/constants/theme';
 import { IssueService } from '@/services/apis/issueServices';
 import { formatDate } from '@/services/apis/functions';
 
+// Error boundary component
+class MapErrorBoundary extends React.Component<
+  { children: React.ReactNode; fallback: React.ReactNode },
+  { hasError: boolean }
+> {
+  constructor(props: any) {
+    super(props);
+    this.state = { hasError: false };
+  }
+
+  static getDerivedStateFromError(error: any) {
+    return { hasError: true };
+  }
+
+  componentDidCatch(error: any, errorInfo: any) {
+    console.error('Map component error:', error, errorInfo);
+  }
+
+  render() {
+    if (this.state.hasError) {
+      return this.props.fallback;
+    }
+
+    return this.props.children;
+  }
+}
+
 interface Issue {
   id: string;
   title: string;
@@ -57,15 +84,23 @@ const MapComponent: React.FC<MapComponentProps> = ({
   const [issues, setIssues] = useState<Issue[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [mapReady, setMapReady] = useState(false);
 
   const fetchIssues = useCallback(async () => {
     try {
       setLoading(true);
       setError(null);
       
-      const response = await IssueService.getAllPublicIssues(1, 100);
+      // Add timeout and better error handling
+      const timeoutPromise = new Promise((_, reject) => 
+        setTimeout(() => reject(new Error('Request timeout')), 10000)
+      );
       
-      if (response.success && response.data?.success) {
+      const responsePromise = IssueService.getAllPublicIssues(1, 100);
+      
+      const response = await Promise.race([responsePromise, timeoutPromise]) as any;
+      
+      if (response?.success && response?.data?.success) {
         const transformedIssues = response.data.data.issues.map((issue: any) => ({
           id: issue._id,
           title: issue.title,
@@ -86,11 +121,12 @@ const MapComponent: React.FC<MapComponentProps> = ({
         
         setIssues(transformedIssues);
       } else {
-        setError(response.error || 'Failed to load issues');
+        setError(response?.error || 'Failed to load issues');
       }
-    } catch (err) {
-      setError('Failed to load issues');
+    } catch (err: any) {
       console.error('Error fetching issues:', err);
+      // Don't crash the app, just show error
+      setError(err?.message || 'Failed to load issues');
     } finally {
       setLoading(false);
     }
@@ -156,20 +192,37 @@ const MapComponent: React.FC<MapComponentProps> = ({
   }
 
   return (
-    <View style={styles.container}>
-      <MapView
-        style={styles.map}
-        initialRegion={initialRegion}
-        showsUserLocation
-        showsMyLocationButton
-        showsCompass
-        showsScale
-        showsBuildings
-        showsIndoors
-      >
-        {issues.map(renderMarker)}
-      </MapView>
-    </View>
+    <MapErrorBoundary
+      fallback={
+        <View style={styles.errorContainer}>
+          <Ionicons name="map-outline" size={48} color={MainColors["Neutral Gray"]} />
+          <Text style={styles.errorText}>Map is currently unavailable</Text>
+          <Text style={styles.retryText} onPress={fetchIssues}>Tap to retry</Text>
+        </View>
+      }
+    >
+      <View style={styles.container}>
+        <MapView
+          style={styles.map}
+          initialRegion={initialRegion}
+          showsUserLocation={false} // Disable in preview builds to prevent permission issues
+          showsMyLocationButton={false}
+          showsCompass={true}
+          showsScale={true}
+          showsBuildings={false} // Disable in preview builds
+          showsIndoors={false} // Disable in preview builds
+          loadingEnabled={true}
+          rotateEnabled={true}
+          zoomEnabled={true}
+          scrollEnabled={true}
+          pitchEnabled={true}
+          toolbarEnabled={false} // Disable toolbar in preview builds
+          onMapReady={() => setMapReady(true)}
+        >
+          {mapReady && issues.map(renderMarker)}
+        </MapView>
+      </View>
+    </MapErrorBoundary>
   );
 };
 
