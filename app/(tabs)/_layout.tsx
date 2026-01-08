@@ -21,9 +21,7 @@ export default function TabLayout() {
 
                               <Text style={[styles.route]}> {prop.route.name} </Text>
                               
-                              <View style={[styles.bellContainer]}>
-                                   <Ionicons name="notifications" size={30} color={MainColors["Almost Black"]} onPress={() => navigate.push("/(notifications)")} />
-                                   <View style={[styles.identifier]}></View>
+                              <View>
                               </View>
                          </View>
                     )
