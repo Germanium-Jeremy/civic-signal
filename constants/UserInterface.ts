@@ -7,4 +7,5 @@ export interface UserDataInterface {
      isPhoneVerified: boolean;
      phone: string;
      role: string;
+     profileImage?: string;
 }

@@ -46,8 +46,16 @@ export default function ProfileScreen() {
                     setLoadingStats(true)
                     try {
                          const statsResponse = await IssueService.getMyStats()
-                         if (statsResponse.success) {
-                              setUserStats(statsResponse.data)
+                         if (statsResponse.success && statsResponse.data) {
+                              setUserStats({
+                                   total: statsResponse.data.total,
+                                   submitted: statsResponse.data.submitted,
+                                   acknowledged: statsResponse.data.acknowledged ?? 0,
+                                   pending: statsResponse.data.inProgress,
+                                   resolved: statsResponse.data.resolved,
+                              })
+                         } else {
+                              setUserStats(null)
                          }
                     } catch (error) {
                          console.error('Failed to fetch user stats:', error)
@@ -141,7 +149,19 @@ export default function ProfileScreen() {
      return (
           <View style={[mainStyles.pages, { gap: 30 }]}>
                <View style={[styles.profile]}>
-                    <Image source={require("@/assets/images/civicsignal.png")} resizeMode="contain" style={[styles.profileImage]} />
+                    {UserData?.profileImage ? (
+                         <Image
+                              source={{ uri: UserData.profileImage }}
+                              resizeMode="cover"
+                              style={[styles.profileImage]}
+                         />
+                    ) : (
+                         <Image
+                              source={require("@/assets/images/civicsignal.png")}
+                              resizeMode="contain"
+                              style={[styles.profileImage]}
+                         />
+                    )}
                     <Text style={[mainStyles.normalText, styles.name]}>{ UserData?.fullName }</Text>
                     <Text style={[mainStyles.normalText, styles.role]}>{ UserData?.role }</Text>
                </View>
@@ -153,10 +173,13 @@ export default function ProfileScreen() {
                          <Text style={[mainStyles.normalText]}>Check for Updates</Text>
                          <Ionicons name="chevron-forward" size={20} />
                     </View>
-                    <View style={[styles.option, { borderBottomWidth: 1 }]}>
-                         <Text style={[mainStyles.normalText]}>Contact Us</Text>
+                    <Pressable
+                         style={[styles.option, { borderBottomWidth: 1 }]}
+                         onPress={() => navigate.push({ pathname: "/(tabs)/profile/edit" as any })}
+                    >
+                         <Text style={[mainStyles.normalText]}>Edit Profile</Text>
                          <Ionicons name="chevron-forward" size={20} />
-                    </View>
+                    </Pressable>
                     <View style={[styles.option, { borderBottomWidth: 1 }]}>
                          <Text style={[mainStyles.normalText]}>Terms and Conditions</Text>
                          <Ionicons name="chevron-forward" size={20} />
