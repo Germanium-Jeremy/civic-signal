@@ -28,9 +28,7 @@ export default function ReportScreen() {
   const [selectedPriority, setSelectedPriority] = useState("");
   const priorities = ["High", "Medium", "Low"];
   const [description, setDescription] = useState("");
-  const [location, setLocation] = useState<Location.LocationObject | null>(
-    null,
-  );
+  const [location, setLocation] = useState<Location.LocationObject | null>(null);
   const [loadingCategories, setLoadingCategories] = useState(true);
   const [loadingLocation, setLoadingLocation] = useState(false);
   const [showCategoryModal, setShowCategoryModal] = useState(false);

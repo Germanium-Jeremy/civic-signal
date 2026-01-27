@@ -17,7 +17,7 @@
         "NSLocationAlwaysAndWhenInUseUsageDescription": "This app needs location access to show your location on the map."
       },
       "config": {
-        "googleMapsApiKey": ""
+        "googleMapsApiKey": "AIzaSyBFEdxmSoipOopC45h5vZHiSbZ5pM0IK5o"
       }
     },
     "android": {
@@ -36,7 +36,7 @@
       ],
       "config": {
         "googleMaps": {
-          "apiKey": ""
+          "apiKey": "AIzaSyBFEdxmSoipOopC45h5vZHiSbZ5pM0IK5o"
         }
       }
     },
@@ -45,7 +45,7 @@
       "favicon": "./assets/images/civicsignal.png",
       "config": {
         "googleMaps": {
-          "apiKey": ""
+          "apiKey": "AIzaSyBFEdxmSoipOopC45h5vZHiSbZ5pM0IK5o"
         }
       }
     },
@@ -65,13 +65,7 @@
       ],
       "expo-font",
       "expo-location",
-      // {
-      //   "isAndroidForegroundServiceEnabled": "Allow civic signal to use your location."
-      // },
       "expo-image-picker"
-      // {
-      //   "photosPermission": "The app accesses your photos to let you share them with your friends."
-      // }
     ],
     "experiments": {
       "typedRoutes": true,
