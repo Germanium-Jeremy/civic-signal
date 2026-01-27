@@ -198,4 +198,27 @@ export const AuthService = {
       };
     }
   },
+
+  uploadProfileImage: async (image: { data: string; mimeType: string }) => {
+    try {
+      const response = await api.post("/user/profile/upload", { image });
+      
+      // Update local user data if response includes user info
+      if (response.data.data?.url) {
+        const user = await TokenManager.getUserData();
+        if (user) {
+          user.profileImage = response.data.data.url;
+          await TokenManager.saveUserData(user);
+        }
+      }
+      
+      return { success: true, data: response.data };
+    } catch (error: any) {
+      console.warn("Profile image upload error: ", error);
+      return {
+        success: false,
+        error: error.response?.data?.error || "Failed to upload profile image",
+      };
+    }
+  },
 };

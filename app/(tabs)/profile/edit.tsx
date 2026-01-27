@@ -1,9 +1,11 @@
 import { useEffect, useState } from "react";
-import { View, Text, TextInput, StyleSheet, Pressable, ActivityIndicator, Alert } from "react-native";
+import { View, Text, StyleSheet, Pressable, ActivityIndicator, Alert, Image } from "react-native";
 import { useRouter } from "expo-router";
+import * as ImagePicker from "expo-image-picker";
+import * as FileSystem from "expo-file-system/legacy";
 import { MainColors } from "@/constants/theme";
 import { useStylesGlobal } from "@/hooks/use-styles-global";
-import api, { TokenManager } from "@/services/apis/config";
+import { TokenManager } from "@/services/apis/config";
 import { AuthService } from "@/services/apis/authServices";
 import { UserDataInterface } from "@/constants/UserInterface";
 
@@ -11,27 +13,76 @@ export default function EditProfileScreen() {
      const mainStyles = useStylesGlobal();
      const router = useRouter();
 
-     const [profileImage, setProfileImage] = useState<string>("");
+     const [profileImageUri, setProfileImageUri] = useState<string | null>(null);
+     const [profileImageUrl, setProfileImageUrl] = useState<string>("");
      const [loading, setLoading] = useState(false);
 
      useEffect(() => {
           const loadUser = async () => {
                const user = (await AuthService.getCurrentUser()) as UserDataInterface | null;
                if (user?.profileImage) {
-                    setProfileImage(user.profileImage);
+                    setProfileImageUrl(user.profileImage);
                }
           };
           loadUser();
      }, []);
 
+     const pickImage = async () => {
+          // Request permissions
+          const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
+          if (status !== 'granted') {
+               Alert.alert("Permission Required", "We need access to your photos to upload a profile image.");
+               return;
+          }
+
+          // Launch image picker
+          const result = await ImagePicker.launchImageLibraryAsync({
+               mediaTypes: ImagePicker.MediaTypeOptions.Images,
+               allowsEditing: true,
+               aspect: [1, 1],
+               quality: 0.8,
+          });
+
+          if (!result.canceled && result.assets[0]) {
+               setProfileImageUri(result.assets[0].uri);
+          }
+     };
+
      const handleSave = async () => {
+          if (!profileImageUri) {
+               Alert.alert("Error", "Please select an image first");
+               return;
+          }
+
           setLoading(true);
           try {
-               const response = await api.patch("/user/profile", { profileImage });
+               // Convert image to base64
+               const base64 = await FileSystem.readAsStringAsync(profileImageUri, {
+                    encoding: FileSystem.EncodingType.Base64,
+               });
 
-               // Persist updated user data locally so Profile screen reflects it
-               if (response.data?.user) {
-                    await TokenManager.saveUserData(response.data.user);
+               // Determine MIME type
+               let mimeType = "image/jpeg";
+               if (profileImageUri.toLowerCase().endsWith('.png')) {
+                    mimeType = "image/png";
+               }
+
+               // Upload image
+               const uploadResult = await AuthService.uploadProfileImage({
+                    data: base64,
+                    mimeType,
+               });
+
+               if (!uploadResult.success) {
+                    throw new Error(uploadResult.error || "Failed to upload image");
+               }
+
+               // Update local user data
+               const user = (await AuthService.getCurrentUser()) as UserDataInterface | null;
+               if (user && uploadResult.data?.data?.url) {
+                    user.profileImage = uploadResult.data.data.url;
+                    await TokenManager.saveUserData(user);
+                    setProfileImageUrl(uploadResult.data.data.url);
                }
 
                Alert.alert("Success", "Profile image updated successfully");
@@ -39,7 +90,6 @@ export default function EditProfileScreen() {
           } catch (error: any) {
                console.error("Failed to update profile image", error);
                const message =
-                    error?.response?.data?.error ||
                     error?.message ||
                     "Failed to update profile image";
                Alert.alert("Error", message);
@@ -48,22 +98,36 @@ export default function EditProfileScreen() {
           }
      };
 
+     const displayImage = profileImageUri || (profileImageUrl ? { uri: profileImageUrl } : null);
+
      return (
           <View style={[mainStyles.pages, styles.container]}>
                <Text style={[mainStyles.normalText, styles.title]}>Edit Profile</Text>
-               <Text style={[mainStyles.normalText, styles.label]}>Profile Image URL</Text>
-               <TextInput
-                    style={[styles.input]}
-                    placeholder="https://example.com/image.jpg"
-                    placeholderTextColor={MainColors["Neutral Gray"]}
-                    value={profileImage}
-                    onChangeText={setProfileImage}
-                    autoCapitalize="none"
-               />
+               
+               <View style={styles.imageContainer}>
+                    {displayImage ? (
+                         <Image source={displayImage} style={styles.profileImage} />
+                    ) : (
+                         <View style={[styles.profileImage, styles.placeholderImage]}>
+                              <Text style={styles.placeholderText}>No Image</Text>
+                         </View>
+                    )}
+               </View>
+
+               <Pressable
+                    style={[styles.pickButton]}
+                    onPress={pickImage}
+                    disabled={loading}
+               >
+                    <Text style={[mainStyles.normalText, styles.pickButtonText]}>
+                         {profileImageUri ? "Change Image" : "Select Image"}
+                    </Text>
+               </Pressable>
+
                <Pressable
                     style={[styles.button, loading && { opacity: 0.7 }]}
                     onPress={handleSave}
-                    disabled={loading}
+                    disabled={loading || !profileImageUri}
                >
                     {loading ? (
                          <ActivityIndicator color={MainColors["Main Background"]} />
@@ -83,22 +147,39 @@ const styles = StyleSheet.create({
           fontSize: 22,
           fontWeight: "600",
      },
-     label: {
-          marginTop: 10,
-          marginBottom: 4,
-          color: MainColors["Neutral Gray"],
+     imageContainer: {
+          alignItems: "center",
+          marginVertical: 20,
      },
-     input: {
+     profileImage: {
+          width: 150,
+          height: 150,
+          borderRadius: 75,
+     },
+     placeholderImage: {
+          backgroundColor: MainColors["Light Gray"],
+          justifyContent: "center",
+          alignItems: "center",
+     },
+     placeholderText: {
+          color: MainColors["Neutral Gray"],
+          fontSize: 14,
+     },
+     pickButton: {
           borderWidth: 1,
-          borderColor: MainColors["Light Gray"],
+          borderColor: MainColors["Primary Blue"],
           borderRadius: 12,
-          paddingHorizontal: 12,
-          paddingVertical: 10,
-          color: MainColors["Almost Black"],
+          paddingVertical: 12,
+          paddingHorizontal: 20,
+          alignItems: "center",
           backgroundColor: "#fff",
      },
+     pickButtonText: {
+          color: MainColors["Primary Blue"],
+          fontWeight: "600",
+     },
      button: {
-          marginTop: 20,
+          marginTop: 10,
           backgroundColor: MainColors["Primary Blue"],
           borderRadius: 20,
           paddingVertical: 12,
