@@ -71,7 +71,7 @@ export default function HomeScreen() {
      const NoIssuesYet = () => {
           return (
                <View style={[styles.noIssue]}>
-                    <Text style={[mainStyles.authTitles, { paddingBottom: 20, fontSize: 20 }]}>You haven't submitted any issue yet.</Text>
+                    <Text style={[mainStyles.authTitles, { paddingBottom: 20, fontSize: 20 }]}>You haven&apos;t submitted any issue yet.</Text>
 
                     <View style={[styles.placeholder]}>
                          <Image source={require('@/assets/images/nothing.png')} resizeMode="contain" style={{ height: 120 }} />
