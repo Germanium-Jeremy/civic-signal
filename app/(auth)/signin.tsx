@@ -22,7 +22,7 @@ export default function SigninScreen() {
           }
 
           setLoading(true);
-          const result = await AuthService.login(email.toLowerCase(), password);
+          const result: any = await AuthService.login(email.toLowerCase(), password);
           setLoading(false);
 
           if (result.success) {
@@ -72,7 +72,7 @@ export default function SigninScreen() {
 
                     {loading && <ActivityIndicator size="small" color={MainColors["Primary Blue"]} />}
 
-                    <Text style={[mainStyles.normalText, { color: MainColors["Primary Blue"] }]}>Don't have an account? <Link href={"/(auth)/signup"} style={{ color: MainColors["Almost Black"] }}>Signup</Link></Text>
+                    <Text style={[mainStyles.normalText, { color: MainColors["Primary Blue"] }]}>Don&apos;t have an account? <Link href={"/(auth)/signup"} style={{ color: MainColors["Almost Black"] }}>Signup</Link></Text>
                </View>
           </ScrollView>
      )
