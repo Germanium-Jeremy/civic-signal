@@ -19,7 +19,7 @@ export default function VerifyCode() {
 
                <MainButton title="Verify" isFullWidth isDark />
 
-               <Text style={[mainStyles.normalText, { color: MainColors["Primary Blue"] }]}>Didn't get the code?</Text>
+               <Text style={[mainStyles.normalText, { color: MainColors["Primary Blue"] }]}>Didn&apos;t get the code?</Text>
           </View>
      )
 }
