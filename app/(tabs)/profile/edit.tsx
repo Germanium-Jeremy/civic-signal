@@ -8,24 +8,22 @@ import { useStylesGlobal } from "@/hooks/use-styles-global";
 import { TokenManager } from "@/services/apis/config";
 import { AuthService } from "@/services/apis/authServices";
 import { UserDataInterface } from "@/constants/UserInterface";
+import { useUser } from "../_layout";
 
 export default function EditProfileScreen() {
      const mainStyles = useStylesGlobal();
      const router = useRouter();
+     const { user, refreshUser } = useUser();
 
      const [profileImageUri, setProfileImageUri] = useState<string | null>(null);
      const [profileImageUrl, setProfileImageUrl] = useState<string>("");
      const [loading, setLoading] = useState(false);
 
      useEffect(() => {
-          const loadUser = async () => {
-               const user = (await AuthService.getCurrentUser()) as UserDataInterface | null;
-               if (user?.profileImage) {
-                    setProfileImageUrl(user.profileImage);
-               }
-          };
-          loadUser();
-     }, []);
+          if (user?.profileImage) {
+               setProfileImageUrl(user.profileImage);
+          }
+     }, [user]);
 
      const pickImage = async () => {
           // Request permissions
@@ -56,18 +54,20 @@ export default function EditProfileScreen() {
 
           setLoading(true);
           try {
-               // Convert image to base64
+               // Convert image to base64 with compression quality similar to Swift
                const base64 = await FileSystem.readAsStringAsync(profileImageUri, {
                     encoding: FileSystem.EncodingType.Base64,
                });
 
-               // Determine MIME type
-               let mimeType = "image/jpeg";
+               // Determine MIME type from file extension (matching Swift logic)
+               let mimeType = "image/jpeg"; // Default to JPEG like Swift
                if (profileImageUri.toLowerCase().endsWith('.png')) {
                     mimeType = "image/png";
+               } else if (profileImageUri.toLowerCase().includes('.jpg') || profileImageUri.toLowerCase().includes('.jpeg')) {
+                    mimeType = "image/jpeg";
                }
 
-               // Upload image
+               // Upload image with same format as Swift
                const uploadResult = await AuthService.uploadProfileImage({
                     data: base64,
                     mimeType,
@@ -77,13 +77,9 @@ export default function EditProfileScreen() {
                     throw new Error(uploadResult.error || "Failed to upload image");
                }
 
-               // Update local user data
-               const user = (await AuthService.getCurrentUser()) as UserDataInterface | null;
-               if (user && uploadResult.data?.data?.url) {
-                    user.profileImage = uploadResult.data.data.url;
-                    await TokenManager.saveUserData(user);
-                    setProfileImageUrl(uploadResult.data.data.url);
-               }
+               // Refresh user data from context to get updated profile image
+               await refreshUser();
+               setProfileImageUrl(uploadResult.data?.data?.url || "");
 
                Alert.alert("Success", "Profile image updated successfully");
                router.back();
@@ -98,7 +94,7 @@ export default function EditProfileScreen() {
           }
      };
 
-     const displayImage = profileImageUri || (profileImageUrl ? { uri: profileImageUrl } : null);
+     const displayImage = profileImageUri ? { uri: profileImageUri } : (profileImageUrl ? { uri: profileImageUrl } : null);
 
      return (
           <View style={[mainStyles.pages, styles.container]}>

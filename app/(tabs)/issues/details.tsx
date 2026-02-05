@@ -7,6 +7,7 @@ import { useLocalSearchParams, useRouter } from "expo-router";
 import { useEffect, useState } from "react";
 import { ActivityIndicator, FlatList, Image, Pressable, ScrollView, StyleSheet, Text, View, Alert } from "react-native";
 import { Image as ExpoImage } from 'expo-image';
+import { API_BASE_URL } from "@/services/apis/config";
 
 interface Issue {
      _id: string;
@@ -89,6 +90,13 @@ export default function IssueDetailsScreen() {
 
      const MediaGallery = ({ photos }: { photos?: Array<{ url: string; thumbnailUrl?: string }> }) => {
           if (!photos || photos.length === 0) return null;
+          
+          const baseHost = API_BASE_URL.replace(/\/api\/?$/, "");
+          const toAbsolute = (u: string) => {
+               if (!u) return u;
+               if (u.startsWith("http://") || u.startsWith("https://")) return u;
+               return `${baseHost}${u.startsWith("/") ? "" : "/"}${u}`;
+          };
 
           return (
                <View style={styles.mediaContainer}>
@@ -97,7 +105,7 @@ export default function IssueDetailsScreen() {
                          {photos.map((photo, index) => (
                               <View key={index} style={styles.mediaItem}>
                                    <ExpoImage
-                                        source={photo.url}
+                                        source={toAbsolute(photo.url)}
                                         style={styles.mediaImage}
                                         contentFit="cover"
                                         placeholder={require("@/assets/images/civic-signal.png")}

@@ -1,18 +1,18 @@
 import { MainColors } from "@/constants/theme";
 import { UserDataInterface } from "@/constants/UserInterface";
 import { useStylesGlobal } from "@/hooks/use-styles-global";
-import { AuthService } from "@/services/apis/authServices";
 import { formatDate, truncateText } from "@/services/apis/functions";
 import { IssueService } from "@/services/apis/issueServices";
 import { Ionicons } from "@expo/vector-icons";
 import { useFocusEffect, useRouter } from "expo-router";
 import { useCallback, useState } from "react";
 import { ActivityIndicator, FlatList, Image, Pressable, RefreshControl, StyleSheet, Text, View } from "react-native";
+import { useUser } from "../_layout";
 
 export default function HomeScreen() {
      const mainStyles = useStylesGlobal()
      const navigate = useRouter()
-     const [UserData, setUserData] = useState<UserDataInterface | undefined>()
+     const { user } = useUser();
      const [stats, setStats] = useState({ total: 0, submitted: 0, resolved: 0, inProgress: 0 })
      const [resentIssue, setRecentIssue] = useState<any[]>([])
      const [loading, setLoading] = useState(true)
@@ -20,9 +20,6 @@ export default function HomeScreen() {
      const fetchData = async () => {
           setLoading(true)
           try {
-               const user = await AuthService.getCurrentUser() as UserDataInterface;
-               setUserData(user);
-
                const statsResult = await IssueService.getMyStats();
                if (statsResult.success) {
                     if (statsResult.data) {
@@ -122,7 +119,7 @@ export default function HomeScreen() {
      return (
           loading ? <ActivityIndicator size="large" color={MainColors["Almost Black"]} /> : (
                <View style={[mainStyles.pages]}>
-                    <Text style={[mainStyles.authTitles, { textAlign: 'left', fontFamily: 'EBGaramondBold', marginBottom: 5 }]}>Welcome {UserData?.fullName.split(" ")[1]}</Text>
+                    <Text style={[mainStyles.authTitles, { textAlign: 'left', fontFamily: 'EBGaramondBold', marginBottom: 5 }]}>Welcome {user?.fullName.split(" ")[1]}</Text>
                     
                     <Statistics />
                     

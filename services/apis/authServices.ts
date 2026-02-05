@@ -29,7 +29,7 @@ export const AuthService = {
       if (response.data.tokens) {
         await TokenManager.saveTokens(
           response.data.tokens.accessToken,
-          response.data.tokens.refreshToken
+          response.data.tokens.refreshToken,
         );
         await TokenManager.saveUserData(response.data.user);
       }
@@ -52,7 +52,7 @@ export const AuthService = {
       if (response.data.tokens) {
         await TokenManager.saveTokens(
           response.data.tokens.accessToken,
-          response.data.tokens.refreshToken
+          response.data.tokens.refreshToken,
         );
         await TokenManager.saveUserData(response.data.user);
       }
@@ -106,25 +106,10 @@ export const AuthService = {
       return { success: true, data: response.data };
     } catch (error: any) {
       console.warn("Failed to login: ", error);
-      if (
-        error.response?.status === 403 &&
-        error.response?.data?.requiresVerification
-      ) {
-        return {
-          success: false,
-          requiresVerification: true,
-          emailVerified: error.response.data.emailVerified,
-          phoneVerified: error.response.data.phoneVerified,
-          email: error.response.data.email,
-          phone: error.response.data.phone,
-          message: error.response.data.message,
-          codesSent: error.response.data.codesSent,
-          error: "Account not verified",
-        };
-      }
       return {
         success: false,
-        error: error.response?.data?.error || "Login failed",
+        error: error.response?.data?.error || error.message || "Login failed",
+        details: error.response?.data?.details,
       };
     }
   },
@@ -180,7 +165,7 @@ export const AuthService = {
     identifier: string,
     resetCode: string,
     newPassword: string,
-    method: "email" | "phone"
+    method: "email" | "phone",
   ) => {
     try {
       const response = await api.post("/auth/reset-password", {
@@ -202,7 +187,7 @@ export const AuthService = {
   uploadProfileImage: async (image: { data: string; mimeType: string }) => {
     try {
       const response = await api.post("/user/profile/upload", { image });
-      
+
       // Update local user data if response includes user info
       if (response.data.data?.url) {
         const user = await TokenManager.getUserData();
@@ -211,7 +196,7 @@ export const AuthService = {
           await TokenManager.saveUserData(user);
         }
       }
-      
+
       return { success: true, data: response.data };
     } catch (error: any) {
       console.warn("Profile image upload error: ", error);

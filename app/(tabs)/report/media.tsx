@@ -45,11 +45,20 @@ export default function MediaAttachScreen() {
           setLoading(true);
 
           try {
-               // Convert to base64
+               // Convert to base64 with proper MIME type detection
                const base64Payload: { data: string; mimeType: string }[] = [];
                for (const img of images) {
                     const b64 = await FileSystem.readAsStringAsync(img.uri, { encoding: "base64" });
-                    base64Payload.push({ data: b64, mimeType: "image/jpeg" });
+                    
+                    // Determine MIME type from file extension or default to jpeg
+                    let mimeType = "image/jpeg";
+                    if (img.uri.toLowerCase().endsWith('.png')) {
+                         mimeType = "image/png";
+                    } else if (img.uri.toLowerCase().endsWith('.jpg') || img.uri.toLowerCase().endsWith('.jpeg')) {
+                         mimeType = "image/jpeg";
+                    }
+                    
+                    base64Payload.push({ data: b64, mimeType });
                }
                const upload = await IssueService.uploadPhotos(base64Payload);
                if (!upload.success) throw new Error(upload.error || "Upload failed");

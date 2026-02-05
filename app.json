@@ -17,7 +17,7 @@
         "NSLocationAlwaysAndWhenInUseUsageDescription": "This app needs location access to show your location on the map."
       },
       "config": {
-        "googleMapsApiKey": "AIzaSyBFEdxmSoipOopC45h5vZHiSbZ5pM0IK5o"
+        "googleMapsApiKey": ""
       }
     },
     "android": {
@@ -36,7 +36,7 @@
       ],
       "config": {
         "googleMaps": {
-          "apiKey": "AIzaSyBFEdxmSoipOopC45h5vZHiSbZ5pM0IK5o"
+          "apiKey": ""
         }
       }
     },
@@ -45,7 +45,7 @@
       "favicon": "./assets/images/civicsignal.png",
       "config": {
         "googleMaps": {
-          "apiKey": "AIzaSyBFEdxmSoipOopC45h5vZHiSbZ5pM0IK5o"
+          "apiKey": ""
         }
       }
     },
