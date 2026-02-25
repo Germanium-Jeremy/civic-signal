@@ -18,6 +18,7 @@ import {
 } from "react-native";
 import * as Location from "expo-location";
 import { MainColors } from "@/constants/theme";
+import { Ionicons } from "@expo/vector-icons";
 
 export default function ReportScreen() {
   const mainStyles = useStylesGlobal();
@@ -346,6 +347,37 @@ export default function ReportScreen() {
             text={description}
             onChange={setDescription}
           />
+
+          {/* Captured Location Display */}
+          <View style={styles.locationCaptureBox}>
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 5 }}>
+              <Ionicons name="location" size={18} color={MainColors["Almost Black"]} />
+              <Text style={{ fontWeight: '600', fontSize: 14 }}>Captured Location</Text>
+            </View>
+            
+            {loadingLocation ? (
+              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
+                <ActivityIndicator size="small" color={MainColors["Almost Black"]} />
+                <Text style={{ fontSize: 13, color: '#666' }}>Fetching your location...</Text>
+              </View>
+            ) : location ? (
+              <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
+                <Text style={{ fontSize: 13, color: MainColors["Accent Green"], fontWeight: '500' }}>
+                  {location.coords.latitude.toFixed(6)}, {location.coords.longitude.toFixed(6)}
+                </Text>
+                <Pressable onPress={getLocation}>
+                  <Text style={{ fontSize: 12, color: MainColors["Primary Blue"], fontWeight: '600' }}>Refresh</Text>
+                </Pressable>
+              </View>
+            ) : (
+              <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
+                <Text style={{ fontSize: 13, color: MainColors["Error red"] }}>Location not captured</Text>
+                <Pressable onPress={getLocation}>
+                  <Text style={{ fontSize: 12, color: MainColors["Primary Blue"], fontWeight: '600' }}>Try Again</Text>
+                </Pressable>
+              </View>
+            )}
+          </View>
         </View>
 
         <Text
@@ -418,6 +450,14 @@ const styles = StyleSheet.create({
   categoryItemSelected: {
     borderColor: MainColors["Accent Green"],
     backgroundColor: "#E8F5E9",
+  },
+  locationCaptureBox: {
+    backgroundColor: MainColors["Light Gray"],
+    padding: 15,
+    borderRadius: 12,
+    marginTop: 10,
+    borderWidth: 1,
+    borderColor: '#EEE',
   },
   closeModalButton: {
     backgroundColor: MainColors["Almost Black"],

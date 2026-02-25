@@ -13,38 +13,74 @@ export default function IssuesScreen() {
      const [activeTab, setActiveTab] = useState(tabs[0])
      const navigate = useRouter()
 
-     const [submitted, setSubmitted] = useState<any[]>([]);
-     const [acknowledged, setAcknowledged] = useState<any[]>([]);
-     const [pending, setPending] = useState<any[]>([]);
-     const [resolved, setResolved] = useState<any[]>([]);
+     const [issues, setIssues] = useState<Record<string, any[]>>({
+          Submitted: [],
+          Acknowledged: [],
+          Pending: [],
+          Resolved: []
+     });
+     const [pages, setPages] = useState<Record<string, number>>({
+          Submitted: 1,
+          Acknowledged: 1,
+          Pending: 1,
+          Resolved: 1
+     });
+     const [hasMore, setHasMore] = useState<Record<string, boolean>>({
+          Submitted: true,
+          Acknowledged: true,
+          Pending: true,
+          Resolved: true
+     });
+     const [loadingMore, setLoadingMore] = useState(false);
 
-     const fetchIssues = async () => {
-          const fetchOne = async (status: "submitted" | "acknowledged" | "pending" | "resolved") => {
-               const res = await IssueService.getMyIssues({ status, limit: 50 });
-               return res.success ? (res.data?.data?.issues || []) : [];
+     const fetchIssues = async (tabName: string, page: number = 1, isLoadMore: boolean = false) => {
+          const statusMap: Record<string, "submitted" | "acknowledged" | "pending" | "resolved"> = {
+               Submitted: "submitted",
+               Acknowledged: "acknowledged",
+               Pending: "pending",
+               Resolved: "resolved"
           };
-          const [s, a, p, r] = await Promise.all([
-               fetchOne("submitted"),
-               fetchOne("acknowledged"),
-               fetchOne("pending"),
-               fetchOne("resolved"),
-          ]);
-          setSubmitted(s);
-          setAcknowledged(a);
-          setPending(p);
-          setResolved(r);
+          
+          const status = statusMap[tabName];
+          const res = await IssueService.getMyIssues({ status, page, limit: 10 });
+          
+          if (res.success) {
+               const newIssues = res.data?.data?.issues || [];
+               setIssues(prev => ({
+                    ...prev,
+                    [tabName]: isLoadMore ? [...prev[tabName], ...newIssues] : newIssues
+               }));
+               setHasMore(prev => ({
+                    ...prev,
+                    [tabName]: newIssues.length === 10
+               }));
+          }
      };
 
-     useFocusEffect(useCallback(() => { fetchIssues(); }, []));
+     const fetchAllInitial = async () => {
+          await Promise.all(tabs.map(tab => fetchIssues(tab, 1, false)));
+     };
+
+     useFocusEffect(useCallback(() => { fetchAllInitial(); }, []));
+
+     const handleLoadMore = async () => {
+          if (loadingMore || !hasMore[activeTab]) return;
+          
+          setLoadingMore(true);
+          const nextPage = pages[activeTab] + 1;
+          await fetchIssues(activeTab, nextPage, true);
+          setPages(prev => ({ ...prev, [activeTab]: nextPage }));
+          setLoadingMore(false);
+     };
 
      const handleChangeTab = (tab: string) => setActiveTab(tab);
 
      const TabSelection = () => {
           const counts: Record<string, number> = {
-               Submitted: submitted.length,
-               Acknowledged: acknowledged.length,
-               Pending: pending.length,
-               Resolved: resolved.length,
+               Submitted: issues.Submitted.length,
+               Acknowledged: issues.Acknowledged.length,
+               Pending: issues.Pending.length,
+               Resolved: issues.Resolved.length,
           };
           return (
                <View style={[styles.tabs]}>
@@ -60,38 +96,55 @@ export default function IssuesScreen() {
      }
 
      const IndividualIssue = ({ item }: { item: any }) => {
-
           return (
                <Pressable style={styles.issie} onPress={() => navigate.push({ pathname: "/(tabs)/issues/details", params: { id: item._id } })}>
                     <Image source={require("@/assets/images/civic-signal.png")} resizeMode="contain" style={[styles.issueIcon]} />
 
-                    <View>
-                         <Text style={[mainStyles.authTitles, { fontSize: 18, fontWeight: 800 }]}>{item.category.charAt(0).toUpperCase() + item.category.slice(1)}, {truncateText(item.description, 15)}</Text>
-                         <Text style={[mainStyles.normalText]}>Submitted at: {formatDate(item.submittedAt)}</Text>
+                    <View style={{ flex: 1 }}>
+                         <Text style={[mainStyles.authTitles, { fontSize: 18, fontWeight: '800' }]}>
+                              {item.category.charAt(0).toUpperCase() + item.category.slice(1)}
+                         </Text>
+                         <Text style={[mainStyles.normalText, { color: '#666' }]} numberOfLines={1}>
+                              {item.description || 'No description'}
+                         </Text>
+                         <Text style={[mainStyles.normalText, { fontSize: 12, marginTop: 4 }]}>
+                              Submitted at: {formatDate(item.submittedAt)}
+                         </Text>
                     </View>
                </Pressable>
           )
      }
 
-     const currentData =
-          activeTab === "Submitted" ? submitted :
-          activeTab === "Acknowledged" ? acknowledged :
-          activeTab === "Pending" ? pending :
-          resolved;
+     const currentData = issues[activeTab];
 
      return (
           <View style={[mainStyles.pages]}>
                <TabSelection />
-               <Text style={[mainStyles.authTitles, { textAlign: "left", fontFamily: "EBGaramondBold", marginTop: 10 }]}>{activeTab} Issues</Text>
+               <Text style={[mainStyles.authTitles, { textAlign: "left", fontFamily: "EBGaramondBold", marginTop: 20, marginBottom: 10 }]}>{activeTab} Issues</Text>
+               
                {currentData.length <= 0 ? (
                     <View style={{ flex: 0.5, justifyContent: 'center', alignItems: 'center' }}>
-                         <Text style={{ fontSize: 24, textAlign: 'center', fontWeight: 500 }}>There are no issues yet!</Text>
+                         <Text style={{ fontSize: 18, textAlign: 'center', color: '#999' }}>There are no issues yet!</Text>
                     </View>
                ) : (
                     <FlatList
                          data={currentData}
                          renderItem={({ item }) => <IndividualIssue item={item} />}
                          keyExtractor={(item: any) => item._id}
+                         contentContainerStyle={{ paddingBottom: 20 }}
+                         ListFooterComponent={() => (
+                              hasMore[activeTab] ? (
+                                   <Pressable 
+                                        style={styles.loadMoreButton} 
+                                        onPress={handleLoadMore}
+                                        disabled={loadingMore}
+                                   >
+                                        <Text style={styles.loadMoreText}>
+                                             {loadingMore ? "Loading..." : "Load More"}
+                                        </Text>
+                                   </Pressable>
+                              ) : null
+                         )}
                     />
                )}
           </View>
@@ -127,5 +180,17 @@ const styles = StyleSheet.create({
           justifyContent: 'space-evenly',
           alignItems: 'center',
           width: 'auto'
+     },
+     loadMoreButton: {
+          backgroundColor: MainColors["Almost Black"],
+          borderRadius: 15,
+          paddingVertical: 12,
+          marginVertical: 20,
+          alignItems: 'center',
+     },
+     loadMoreText: {
+          color: MainColors["Main Background"],
+          fontWeight: '600',
+          fontSize: 14,
      }
 })
