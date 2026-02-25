@@ -48,6 +48,7 @@ interface Issue {
 
 interface MapComponentProps {
   onIssuePress?: (issue: Issue) => void;
+  searchText?: string;
   initialRegion?: {
     latitude: number;
     longitude: number;
@@ -74,36 +75,37 @@ const { width, height } = Dimensions.get('window');
 
 const MapComponent: React.FC<MapComponentProps> = ({ 
   onIssuePress, 
+  searchText = "",
   initialRegion = {
     latitude: -1.9499,
     longitude: 30.0588,
-    latitudeDelta: 0.0922,
-    longitudeDelta: 0.0421,
+    latitudeDelta: 0.1,
+    longitudeDelta: 0.1,
   }
 }) => {
   const [issues, setIssues] = useState<Issue[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [mapReady, setMapReady] = useState(false);
+  const mapRef = React.useRef<MapView>(null);
+
+  const filteredIssues = issues.filter(issue => 
+    issue.title.toLowerCase().includes(searchText.toLowerCase()) ||
+    issue.category.toLowerCase().includes(searchText.toLowerCase()) ||
+    issue.description.toLowerCase().includes(searchText.toLowerCase())
+  );
 
   const fetchIssues = useCallback(async () => {
     try {
       setLoading(true);
       setError(null);
       
-      // Add timeout and better error handling
-      const timeoutPromise = new Promise((_, reject) => 
-        setTimeout(() => reject(new Error('Request timeout')), 10000)
-      );
-      
-      const responsePromise = IssueService.getAllPublicIssues(1, 100);
-      
-      const response = await Promise.race([responsePromise, timeoutPromise]) as any;
+      const response = await IssueService.getAllPublicIssues(1, 100);
       
       if (response?.success && response?.data?.success) {
         const transformedIssues = response.data.data.issues.map((issue: any) => ({
           id: issue._id,
-          title: issue.title,
+          title: issue.title || "",
           status: issue.status,
           priority: issue.priority?.toLowerCase() || 'medium',
           location: issue.location?.address || 'Unknown Location',
@@ -112,7 +114,7 @@ const MapComponent: React.FC<MapComponentProps> = ({
                 lat: issue.location.coordinates[1], 
                 lng: issue.location.coordinates[0] 
               }
-            : { lat: -1.94995, lng: 30.05885 }, // Default Kigali coordinates
+            : { lat: -1.94995, lng: 30.05885 },
           reportedAt: issue.submittedAt || issue.createdAt || new Date().toISOString(),
           category: issue.category,
           description: issue.description || '',
@@ -125,7 +127,6 @@ const MapComponent: React.FC<MapComponentProps> = ({
       }
     } catch (err: any) {
       console.error('Error fetching issues:', err);
-      // Don't crash the app, just show error
       setError(err?.message || 'Failed to load issues');
     } finally {
       setLoading(false);
@@ -135,6 +136,19 @@ const MapComponent: React.FC<MapComponentProps> = ({
   useEffect(() => {
     fetchIssues();
   }, [fetchIssues]);
+
+  useEffect(() => {
+     if (mapReady && filteredIssues.length > 0 && mapRef.current) {
+          const coords = filteredIssues.map(issue => ({
+               latitude: issue.coordinates.lat,
+               longitude: issue.coordinates.lng,
+          }));
+          mapRef.current.fitToCoordinates(coords, {
+               edgePadding: { top: 50, right: 50, bottom: 50, left: 50 },
+               animated: true,
+          });
+     }
+  }, [mapReady, filteredIssues.length]);
 
   const getMarkerColor = (issue: Issue) => {
     return statusColors[issue.status as keyof typeof statusColors] || '#999999';
@@ -203,6 +217,7 @@ const MapComponent: React.FC<MapComponentProps> = ({
     >
       <View style={styles.container}>
         <MapView
+          ref={mapRef}
           style={styles.map}
           initialRegion={initialRegion}
           showsUserLocation={false} // Disable in preview builds to prevent permission issues
@@ -219,7 +234,7 @@ const MapComponent: React.FC<MapComponentProps> = ({
           toolbarEnabled={false} // Disable toolbar in preview builds
           onMapReady={() => setMapReady(true)}
         >
-          {mapReady && issues.map(renderMarker)}
+          {mapReady && filteredIssues.map(renderMarker)}
         </MapView>
       </View>
     </MapErrorBoundary>

@@ -25,6 +25,7 @@ export default function MapScreen() {
      const mainStyles = useStylesGlobal()
      const navigate = useRouter()
      const [showLegend, setShowLegend] = useState(false)
+     const [searchText, setSearchText] = useState("")
 
      const handleMarkerPress = (issue: Issue) => {
           navigate.push({ pathname: "/(tabs)/issues/details", params: { id: issue.id } });
@@ -33,7 +34,13 @@ export default function MapScreen() {
      const SearchBar = () => {
           return (
                <View style={[styles.searchBar]}>
-                    <TextInput placeholder="Search Location" placeholderTextColor={MainColors["Neutral Gray"]} style={[styles.searchInput]} />
+                    <TextInput 
+                         placeholder="Search Category or Title" 
+                         placeholderTextColor={MainColors["Neutral Gray"]} 
+                         style={[styles.searchInput]} 
+                         value={searchText}
+                         onChangeText={setSearchText}
+                    />
                     <Ionicons name="search" color={MainColors["Neutral Gray"]} size={30} />
                </View>
           )
@@ -49,7 +56,10 @@ export default function MapScreen() {
                     <SearchBar />
                     
                     <View style={styles.mapContainer}>
-                         <MapComponent onIssuePress={handleMarkerPress} />
+                         <MapComponent 
+                              onIssuePress={handleMarkerPress} 
+                              searchText={searchText}
+                         />
                          <MapLegend visible={showLegend} onToggle={() => setShowLegend(!showLegend)} />
                     </View>
                </View>
