@@ -3,6 +3,8 @@ import { StatusBar } from "expo-status-bar";
 import { useFonts } from "expo-font";
 import "react-native-reanimated";
 import { SafeAreaView } from "react-native-safe-area-context";
+import { useEffect } from "react";
+import { syncOfflineIssueQueue } from "@/services/apis/offlineIssueQueue";
 
 export const unstable_settings = {
   anchor: "(tabs)",
@@ -13,6 +15,12 @@ export default function RootLayout() {
     EBGaramond: require("../assets/fonts/EB_Garamond/EBGaramond-VariableFont_wght.ttf"),
     EBGaramondBold: require("../assets/fonts/EB_Garamond/static/EBGaramond-Bold.ttf"),
   });
+
+  useEffect(() => {
+    syncOfflineIssueQueue().catch(() => {
+      // Silent background sync, no blocking UX.
+    });
+  }, []);
 
   if (!fontsLoaded) {
     return null;
