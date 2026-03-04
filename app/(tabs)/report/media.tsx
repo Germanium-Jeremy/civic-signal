@@ -6,13 +6,15 @@ import * as FileSystem from "expo-file-system/legacy";
 import { IssueService } from "@/services/apis/issueServices";
 import { useState } from "react";
 import MainButton from "@/components/MainButton";
+import * as DocumentPicker from "expo-document-picker";
+import { enqueueOfflineMediaAttachment } from "@/services/apis/offlineIssueQueue";
 
 export const runtime = 'nodejs';
 
 export default function MediaAttachScreen() {
      const mainStyles = useStylesGlobal();
      const { issueId } = useLocalSearchParams<{ issueId: string }>();
-     const [images, setImages] = useState<{ uri: any }[]>([]);
+     const [mediaAssets, setMediaAssets] = useState<{ uri: string; type: 'image' | 'audio' | 'video'; mimeType: string }[]>([]);
      const [loading, setLoading] = useState(false);
      const navigate = useRouter()
 
@@ -23,15 +25,50 @@ export default function MediaAttachScreen() {
                quality: 0.6,
           });
           if (!res.canceled) {
-               const selected = (res.assets || []).map((a) => ({ uri: a.uri }));
-               setImages(selected);
+               const selected = (res.assets || []).map((a) => ({ 
+                   uri: a.uri, 
+                   type: 'image' as const,
+                   mimeType: a.mimeType || 'image/jpeg'
+               }));
+               setMediaAssets((prev) => [...prev, ...selected]);
+          }
+     };
+
+     const pickVideo = async () => {
+          const res = await ImagePicker.launchImageLibraryAsync({
+               mediaTypes: ImagePicker.MediaTypeOptions.Videos,
+               allowsMultipleSelection: false,
+               quality: 0.6,
+          });
+          if (!res.canceled) {
+               const selected = (res.assets || []).map((a) => ({ 
+                   uri: a.uri, 
+                   type: 'video' as const,
+                   mimeType: a.mimeType || 'video/mp4'
+               }));
+               setMediaAssets((prev) => [...prev, ...selected]);
+          }
+     };
+
+     const pickAudio = async () => {
+          const res = await DocumentPicker.getDocumentAsync({
+               type: 'audio/*',
+               multiple: false,
+          });
+          if (!res.canceled) {
+               const asset = res.assets[0];
+               setMediaAssets((prev) => [...prev, { 
+                   uri: asset.uri, 
+                   type: 'audio',
+                   mimeType: asset.mimeType || 'audio/mpeg'
+               }]);
           }
      };
 
      const submitMedia = async () => {
           if (!issueId) return;
-          if (!images.length) {
-               if (Platform.OS == 'web') {
+          if (!mediaAssets.length) {
+               if (Platform.OS === 'web') {
                     alert("Issue submitted successfully.")
                     return
                }
@@ -45,32 +82,45 @@ export default function MediaAttachScreen() {
           setLoading(true);
 
           try {
-               // Convert to base64 with proper MIME type detection
+               // Convert to base64
                const base64Payload: { data: string; mimeType: string }[] = [];
-               for (const img of images) {
-                    const b64 = await FileSystem.readAsStringAsync(img.uri, { encoding: "base64" });
-                    
-                    // Determine MIME type from file extension or default to jpeg
-                    let mimeType = "image/jpeg";
-                    if (img.uri.toLowerCase().endsWith('.png')) {
-                         mimeType = "image/png";
-                    } else if (img.uri.toLowerCase().endsWith('.jpg') || img.uri.toLowerCase().endsWith('.jpeg')) {
-                         mimeType = "image/jpeg";
-                    }
-                    
-                    base64Payload.push({ data: b64, mimeType });
+               for (const asset of mediaAssets) {
+                    const b64 = await FileSystem.readAsStringAsync(asset.uri, { encoding: "base64" });
+                    base64Payload.push({ data: b64, mimeType: asset.mimeType });
                }
-               const upload = await IssueService.uploadPhotos(base64Payload);
+
+               const upload = await IssueService.uploadMedia(base64Payload);
                if (!upload.success) throw new Error(upload.error || "Upload failed");
 
-               const photos = upload.data.data.images; // { url, thumbnailUrl, ... }
-               const patch = await IssueService.updateIssuePhotos(issueId as string, photos);
-               if (!patch.success) throw new Error(patch.error || "Failed to attach photos");
+               const media = upload.data.data.images; // Array of { url, mediaType, ... }
+               const patch = await IssueService.updateIssueMedia(issueId as string, media);
+               if (!patch.success) throw new Error(patch.error || "Failed to attach media");
 
-               Alert.alert("Success", "Photos attached to your issue.");
+               Alert.alert("Success", "Evidence attached to your issue.", [{
+                    onPress: () => navigate.replace({
+                         pathname: "/(tabs)/home",
+                    })
+               }]);
           } catch (e: any) {
-               Alert.alert("Error", e?.message || "Failed to attach photos.");
-               console.warn("Error uploading media: ", e)
+               const likelyOffline = !e?.response || e?.message?.includes("Network Error");
+               if (likelyOffline && issueId) {
+                    await enqueueOfflineMediaAttachment(
+                         issueId as string,
+                         mediaAssets.map((asset) => ({
+                              uri: asset.uri,
+                              mimeType: asset.mimeType,
+                              mediaType: asset.type,
+                         }))
+                    );
+                    Alert.alert(
+                         "Queued Offline",
+                         "Media upload was saved and will sync automatically when you're online.",
+                         [{ onPress: () => navigate.replace({ pathname: "/(tabs)/home" }) }]
+                    );
+               } else {
+                    Alert.alert("Error", e?.message || "Failed to attach media.");
+                    console.warn("Error uploading media: ", e);
+               }
           } finally {
                setLoading(false);
           }
@@ -88,32 +138,39 @@ export default function MediaAttachScreen() {
                          <Text style={[mainStyles.normalText, styles.optionalText]}>(optional)</Text>
                     </Pressable>
 
-                    <Pressable onPress={() => Alert.alert("Info", "Audio recording will be added soon.")} style={styles.outlineBtn}>
-                         <Text style={[mainStyles.normalText, styles.outlineBtnText]}>Record Audio</Text>
-                         <Text style={[mainStyles.normalText, styles.optionalText]}>(optional)</Text>
-                    </Pressable>
+                     <Pressable onPress={pickAudio} style={styles.outlineBtn}>
+                          <Text style={[mainStyles.normalText, styles.outlineBtnText]}>Upload Audio</Text>
+                          <Text style={[mainStyles.normalText, styles.optionalText]}>(optional)</Text>
+                     </Pressable>
 
-                    <Pressable onPress={() => Alert.alert("Info", "Video recording will be added soon.")} style={styles.outlineBtn}>
-                         <Text style={[mainStyles.normalText, styles.outlineBtnText]}>Record Video</Text>
-                         <Text style={[mainStyles.normalText, styles.optionalText]}>(optional)</Text>
-                    </Pressable>
-               </View>
+                     <Pressable onPress={pickVideo} style={styles.outlineBtn}>
+                          <Text style={[mainStyles.normalText, styles.outlineBtnText]}>Upload Video</Text>
+                          <Text style={[mainStyles.normalText, styles.optionalText]}>(optional)</Text>
+                     </Pressable>
+                </View>
 
-               {/* Selected image previews */}
-               {images.length > 0 && (
-                    <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ marginTop: 16 }}>
-                         <View style={{ flexDirection: "row", gap: 12 }}>
-                              {images.map((img, idx) => (
-                                   <View key={`${img.uri}-${idx}`} style={styles.thumbWrap}>
-                                        <Image source={{ uri: img.uri }} style={styles.thumb} />
-                                        <Pressable style={styles.removeBadge} onPress={() => setImages((prev) => prev.filter((_, i) => i !== idx))}>
-                                             <Text style={{ color: "#fff", fontWeight: "700" }}>×</Text>
-                                        </Pressable>
-                                   </View>
-                              ))}
-                         </View>
-                    </ScrollView>
-               )}
+                {/* Selected media previews */}
+                {mediaAssets.length > 0 && (
+                     <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ marginTop: 16 }}>
+                          <View style={{ flexDirection: "row", gap: 12 }}>
+                               {mediaAssets.map((asset, idx) => (
+                                    <View key={`${asset.uri}-${idx}`} style={styles.thumbWrap}>
+                                         {asset.type === 'image' ? (
+                                             <Image source={{ uri: asset.uri }} style={styles.thumb} />
+                                         ) : (
+                                             <View style={[styles.thumb, { backgroundColor: '#f0f0f0', justifyContent: 'center', alignItems: 'center' }]}>
+                                                 <Text style={{ fontSize: 24 }}>{asset.type === 'audio' ? '🎵' : '🎥'}</Text>
+                                                 <Text style={{ fontSize: 10, color: '#666' }}>{asset.type.toUpperCase()}</Text>
+                                             </View>
+                                         )}
+                                         <Pressable style={styles.removeBadge} onPress={() => setMediaAssets((prev) => prev.filter((_, i) => i !== idx))}>
+                                              <Text style={{ color: "#fff", fontWeight: "700" }}>×</Text>
+                                         </Pressable>
+                                    </View>
+                               ))}
+                          </View>
+                     </ScrollView>
+                )}
 
                {/* Helper text */}
                <Text style={[mainStyles.normalText, { marginTop: 24 }]}>
