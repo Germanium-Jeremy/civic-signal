@@ -1,8 +1,8 @@
 import InputElement from "@/components/InputElement";
 import MainButton from "@/components/MainButton";
 import { useStylesGlobal } from "@/hooks/use-styles-global";
-import { IssueService } from "@/services/apis/issueServices";
-import { getDeviceInfo } from "@/services/apis/issueServices";
+import { IssueService, getDeviceInfo } from "@/services/apis/issueServices";
+import { enqueueOfflineIssue, getOfflineQueueCount } from "@/services/apis/offlineIssueQueue";
 import { useRouter } from "expo-router";
 import { useEffect, useState } from "react";
 import {
@@ -14,7 +14,6 @@ import {
   StyleSheet,
   Text,
   View,
-  Platform,
 } from "react-native";
 import * as Location from "expo-location";
 import { MainColors } from "@/constants/theme";
@@ -35,11 +34,22 @@ export default function ReportScreen() {
   const [showCategoryModal, setShowCategoryModal] = useState(false);
   const [showPriorityModal, setShowPriorityModal] = useState(false);
   const [lodingSubmit, setLoadingSubmit] = useState(false);
+  const [customFields, setCustomFields] = useState<Record<string, any>>({});
+  const [manualAddress, setManualAddress] = useState("");
+  const [manualDistrict, setManualDistrict] = useState("");
+  const [manualSector, setManualSector] = useState("");
+  const [queuedCount, setQueuedCount] = useState(0);
 
   useEffect(() => {
     fetchCategories();
     getLocation();
+    refreshQueueCount();
   }, []);
+
+  const refreshQueueCount = async () => {
+    const count = await getOfflineQueueCount();
+    setQueuedCount(count);
+  };
 
   const fetchCategories = async () => {
     const result = await IssueService.getCategories();
@@ -83,6 +93,7 @@ export default function ReportScreen() {
 
   const handleCategorySelect = (category: any) => {
     setSelectedCategory(category);
+    setCustomFields({}); // Reset custom fields when category changes
     setShowCategoryModal(false);
   };
 
@@ -108,19 +119,42 @@ export default function ReportScreen() {
       return;
     }
 
+    const needsPreciseLocation = selectedCategory?.locationPolicy === "precise";
+    if (
+      needsPreciseLocation &&
+      (!location?.coords?.latitude || !location?.coords?.longitude)
+    ) {
+      Alert.alert(
+        "Location required",
+        "This category requires precise location. Please enable location and try again.",
+      );
+      return;
+    }
+
     try {
       setLoadingSubmit(true);
       const payload: any = {
-        category: selectedCategory.id,
+        category: selectedCategory.name, // Send name instead of id to match backend expect
         description: description.trim(),
-        priority: selectedPriority.trim(),
-        deviceInfo: getDeviceInfo(), // Add deviceInfo to the payload
+        priority: selectedPriority.trim().toLowerCase(),
+        deviceInfo: getDeviceInfo(),
+        customFields: customFields,
+        source: "mobile",
       };
 
       if (location?.coords?.latitude && location?.coords?.longitude) {
         payload.location = {
           latitude: location.coords.latitude,
           longitude: location.coords.longitude,
+          address: manualAddress || undefined,
+          district: manualDistrict || undefined,
+          sector: manualSector || undefined,
+        };
+      } else if (manualAddress || manualDistrict || manualSector) {
+        payload.location = {
+          address: manualAddress || undefined,
+          district: manualDistrict || undefined,
+          sector: manualSector || undefined,
         };
       }
 
@@ -133,8 +167,18 @@ export default function ReportScreen() {
           params: { issueId },
         });
       } else {
-        Alert.alert("Error", res.error || "Failed to create issue.");
-        console.warn("Failed to submit issue: ", res.error);
+        if ((res as any).offline) {
+          await enqueueOfflineIssue(payload);
+          await refreshQueueCount();
+          Alert.alert(
+            "Queued Offline",
+            "No internet detected. Your report has been saved and will sync automatically.",
+            [{ onPress: () => navigate.replace({ pathname: "/(tabs)/home" }) }],
+          );
+        } else {
+          Alert.alert("Error", res.error || "Failed to create issue.");
+          console.warn("Failed to submit issue: ", res.error);
+        }
       }
     } catch (error: any) {
       Alert.alert("Error", error?.message || "Failed to create issue.");
@@ -304,6 +348,11 @@ export default function ReportScreen() {
     <ScrollView style={[mainStyles.pages]}>
       <View style={{ gap: 30, justifyContent: "center", paddingVertical: 20 }}>
         <Text style={[mainStyles.authTitles]}>Report a Civic Issue</Text>
+        {queuedCount > 0 && (
+          <Text style={[mainStyles.normalText, { color: MainColors["Warning Yellow"] }]}>
+            {queuedCount} report(s) are queued offline and will sync automatically.
+          </Text>
+        )}
 
         <View style={{ gap: 10 }}>
           {/* Category Selection */}
@@ -348,6 +397,57 @@ export default function ReportScreen() {
             onChange={setDescription}
           />
 
+          {/* Dynamic Category Fields */}
+          {selectedCategory?.fields?.length > 0 && (
+            <View style={{ gap: 10, marginTop: 10 }}>
+              <Text style={[mainStyles.normalText, { fontWeight: '600' }]}>Additional Information</Text>
+              {selectedCategory.fields.map((field: any) => (
+                <View key={field.name} style={{ gap: 5 }}>
+                  <Text style={[mainStyles.normalText, { fontSize: 13, color: '#666' }]}>
+                    {field.label} {field.required ? '*' : ''}
+                  </Text>
+                  {field.type === 'select' ? (
+                    <View style={styles.categorySelector}>
+                       {/* Simple select implementation for viability */}
+                       <ScrollView horizontal showsHorizontalScrollIndicator={false}>
+                        {field.options?.map((opt: string) => (
+                          <Pressable 
+                            key={opt} 
+                            onPress={() => setCustomFields(prev => ({ ...prev, [field.name]: opt }))}
+                            style={{ 
+                              paddingHorizontal: 12, 
+                              paddingVertical: 6, 
+                              borderRadius: 15, 
+                              marginRight: 8,
+                              backgroundColor: customFields[field.name] === opt ? MainColors["Primary Blue"] : '#EEE' 
+                            }}
+                          >
+                            <Text style={{ fontSize: 12, color: customFields[field.name] === opt ? '#FFF' : '#000' }}>{opt}</Text>
+                          </Pressable>
+                        ))}
+                       </ScrollView>
+                    </View>
+                  ) : field.type === 'boolean' ? (
+                    <Pressable 
+                      onPress={() => setCustomFields(prev => ({ ...prev, [field.name]: !prev[field.name] }))}
+                      style={[styles.categorySelector, { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }]}
+                    >
+                      <Text style={mainStyles.normalText}>{customFields[field.name] ? 'Yes' : 'No'}</Text>
+                      <View style={{ width: 20, height: 20, borderRadius: 10, borderWidth: 2, borderColor: MainColors["Primary Blue"], backgroundColor: customFields[field.name] ? MainColors["Primary Blue"] : 'transparent' }} />
+                    </Pressable>
+                  ) : (
+                    <InputElement
+                      placeholder={field.placeholder || field.label}
+                      text={customFields[field.name]?.toString() || ''}
+                      onChange={(val) => setCustomFields(prev => ({ ...prev, [field.name]: val }))}
+                      isPhone={field.type === 'number'}
+                    />
+                  )}
+                </View>
+              ))}
+            </View>
+          )}
+
           {/* Captured Location Display */}
           <View style={styles.locationCaptureBox}>
             <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 5 }}>
@@ -378,6 +478,26 @@ export default function ReportScreen() {
               </View>
             )}
           </View>
+
+          {(selectedCategory?.locationPolicy === "general" || selectedCategory?.locationPolicy === "optional") && (
+            <View style={{ gap: 8 }}>
+              <InputElement
+                placeholder="Address (optional)"
+                text={manualAddress}
+                onChange={setManualAddress}
+              />
+              <InputElement
+                placeholder="District/Area (optional)"
+                text={manualDistrict}
+                onChange={setManualDistrict}
+              />
+              <InputElement
+                placeholder="Sector/Neighborhood (optional)"
+                text={manualSector}
+                onChange={setManualSector}
+              />
+            </View>
+          )}
         </View>
 
         <Text
