@@ -29,33 +29,33 @@ export const IssueService = {
      },
 
      /**
-      * Append photos to an existing issue
+      * Append media to an existing issue
       */
-     updateIssuePhotos: async (issueId: string, photos: Array<{ url: string; thumbnailUrl?: string; size?: number; mimeType?: string }>) => {
+     updateIssueMedia: async (issueId: string, media: Array<{ url: string; mediaType: 'image' | 'audio' | 'video'; thumbnailUrl?: string; size?: number; mimeType?: string }>) => {
           try {
-               const response = await api.patch(`/issues/${issueId}`, { photos });
+               const response = await api.patch(`/issues/${issueId}`, { media });
                return { success: true, data: response.data };
           } catch (error: any) {
-               console.warn("Error updating issue photos: ", error)
+               console.warn("Error updating issue media: ", error)
                return {
                     success: false,
-                    error: error.response?.data?.error || 'Failed to update issue photos',
+                    error: error.response?.data?.error || 'Failed to update issue media',
                };
           }
      },
 
      /**
-      * Upload photos (base64 format for mobile)
+      * Upload media files (base64 format for mobile)
       * Returns URLs to use in issue creation
       */
-     uploadPhotos: async (images: Array<{ data: string; mimeType: string }>) => {
+     uploadMedia: async (files: Array<{ data: string; mimeType: string }>) => {
           try {
-               const response = await api.post("/issues/upload", { images });
+               const response = await api.post("/issues/upload", { images: files });
                return { success: true, data: response.data };
           } catch (error: any) {
                return {
                     success: false,
-                    error: error.response?.data?.error || "Failed to upload photos",
+                    error: error.response?.data?.error || "Failed to upload media",
                };
           }
      },
@@ -65,8 +65,10 @@ export const IssueService = {
       * Requires authentication
       */
      createIssue: async (issueData: { title?: string; description?: string; category: string; priority?: string;
-          location?: { latitude: number; longitude: number; address?: string; district?: string; sector?: string };
-          photos?: Array<{ url: string; thumbnailUrl: string }>;
+          location?: { latitude?: number; longitude?: number; address?: string; district?: string; sector?: string };
+          media?: Array<{ url: string; mediaType: 'image' | 'audio' | 'video'; thumbnailUrl?: string }>;
+          customFields?: Record<string, any>;
+          source?: 'web' | 'mobile' | 'ios' | 'android' | 'api';
      }) => {
           try {
                const deviceInfo = getDeviceInfo();
@@ -80,6 +82,8 @@ export const IssueService = {
 
                return { success: true, data: response.data };
           } catch (error: any) {
+               const likelyOffline = !error.response || error.message?.includes("Network Error") || error.code === "ECONNABORTED";
+
                // Handle specific error cases
                if (error.response?.status === 403) {
                     return {
@@ -100,6 +104,7 @@ export const IssueService = {
                return {
                     success: false,
                     error: error.response?.data?.error || "Failed to create issue",
+                    offline: likelyOffline,
                };
           }
      },
