@@ -1,39 +1,35 @@
 import { MainColors } from "@/constants/theme";
-import { UserDataInterface } from "@/constants/UserInterface";
 import { useStylesGlobal } from "@/hooks/use-styles-global";
 import { formatDate, truncateText } from "@/services/apis/functions";
 import { IssueService } from "@/services/apis/issueServices";
 import { Ionicons } from "@expo/vector-icons";
 import { useFocusEffect, useRouter } from "expo-router";
 import { useCallback, useState } from "react";
-import { ActivityIndicator, FlatList, Image, Pressable, RefreshControl, StyleSheet, Text, View } from "react-native";
+import { ActivityIndicator, FlatList, Image, Pressable, StyleSheet, Text, View } from "react-native";
+import type { Issue, IssueStats } from "@/services/apis/types";
 import { useUser } from "../_layout";
 
 export default function HomeScreen() {
      const mainStyles = useStylesGlobal()
      const navigate = useRouter()
      const { user } = useUser();
-     const [stats, setStats] = useState({ total: 0, submitted: 0, resolved: 0, inProgress: 0 })
-     const [resentIssue, setRecentIssue] = useState<any[]>([])
+     const [stats, setStats] = useState<IssueStats>({ total: 0, submitted: 0, acknowledged: 0, resolved: 0, inProgress: 0 })
+     const [recentIssues, setRecentIssues] = useState<Issue[]>([])
+     const [error, setError] = useState<string | null>(null)
      const [loading, setLoading] = useState(true)
 
      const fetchData = async () => {
           setLoading(true)
+          setError(null)
           try {
                const statsResult = await IssueService.getMyStats();
-               if (statsResult.success) {
-                    if (statsResult.data) {
-                         setStats(statsResult.data);
-                    }
-               }
+               if (statsResult.success && statsResult.data) setStats(statsResult.data);
 
                const issuesResult = await IssueService.getMyIssues({ limit: 3 });
-               if (issuesResult.success) {
-                    setRecentIssue(issuesResult.data.data.issues);
-               }
-               console.log("Issues: ", issuesResult.data.data.issues)
-          } catch (error) {
-               console.error('Error fetching data:', error);
+               if (issuesResult.success && issuesResult.data) setRecentIssues(issuesResult.data.issues);
+               else setError(issuesResult.error || "Unable to load recent issues.");
+          } catch {
+               setError("Unable to load your issue data.");
           } finally {
                setLoading(false);
           }
@@ -83,8 +79,8 @@ export default function HomeScreen() {
           )
      }
 
-     const IndividualIssue = ({ item }: { item: any }) => {
-          const getStatusColor = (status: any) => {
+     const IndividualIssue = ({ item }: { item: Issue }) => {
+          const getStatusColor = (status: Issue["status"]) => {
                switch (status) {
                     case "submitted": return MainColors["Error red"];
                     case "acknowledged": return MainColors["Warning Yellow"];
@@ -98,20 +94,20 @@ export default function HomeScreen() {
                <Pressable style={styles.issie} onPress={() => navigate.push({ pathname: "/(tabs)/issues/details", params: { id: item._id } })}>
                     <View style={[styles.statusDot, { backgroundColor: getStatusColor(item.status) }]} />
                     <View>
-                         <Text style={[mainStyles.authTitles, { fontSize: 18, fontWeight: 800, textAlign: 'left' }]}>{item.category.charAt(0).toUpperCase() + item.category.slice(1).replace("_", " ")}, {truncateText(item.description, 15)}</Text>
-                         <Text style={[mainStyles.normalText]}>Submitted at: {formatDate(item.submittedAt)}</Text>
+                         <Text style={[mainStyles.authTitles, { fontSize: 18, fontWeight: 800, textAlign: 'left' }]}>{item.category.charAt(0).toUpperCase() + item.category.slice(1).replace("_", " ")}, {truncateText(item.description || "", 15)}</Text>
+                         <Text style={[mainStyles.normalText]}>Submitted at: {item.submittedAt ? formatDate(item.submittedAt) : "Unknown"}</Text>
                     </View>
                </Pressable>
           );
      };
 
      const IssuesDisplay = () => {
-          if (!resentIssue || resentIssue.length === 0) return <NoIssuesYet />
+          if (recentIssues.length === 0) return <NoIssuesYet />
           return (
                <FlatList
-                    data={resentIssue}
+                    data={recentIssues}
                     renderItem={({ item }) => <IndividualIssue item={item} />}
-                    keyExtractor={(item: any) => item._id}
+                    keyExtractor={(item) => item._id}
                />
           );
      };
@@ -119,13 +115,14 @@ export default function HomeScreen() {
      return (
           loading ? <ActivityIndicator size="large" color={MainColors["Almost Black"]} /> : (
                <View style={[mainStyles.pages]}>
-                    <Text style={[mainStyles.authTitles, { textAlign: 'left', fontFamily: 'EBGaramondBold', marginBottom: 5 }]}>Welcome {user?.fullName.split(" ")[1]}</Text>
+                    <Text style={[mainStyles.authTitles, { textAlign: 'left', fontFamily: 'EBGaramondBold', marginBottom: 5 }]}>Welcome {user?.fullName?.split(" ")[0] || ""}</Text>
                     
                     <Statistics />
                     
                     <Text style={[mainStyles.authTitles, { textAlign: 'left', fontFamily: 'EBGaramondBold', marginTop: 10 }]}>Previous Issues</Text>
 
-                    {resentIssue.length > 0 ? <IssuesDisplay /> : <NoIssuesYet />}
+                    {error && <Text style={[mainStyles.normalText, { color: MainColors["Error red"] }]}>{error}</Text>}
+                    {recentIssues.length > 0 ? <IssuesDisplay /> : <NoIssuesYet />}
                </View>
           )
      )
