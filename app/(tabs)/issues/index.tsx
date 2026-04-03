@@ -1,10 +1,11 @@
 import { MainColors } from "@/constants/theme";
 import { useStylesGlobal } from "@/hooks/use-styles-global";
-import { formatDate, truncateText } from "@/services/apis/functions";
+import { formatDate } from "@/services/apis/functions";
 import { IssueService } from "@/services/apis/issueServices";
 import { useFocusEffect, useRouter } from "expo-router";
-import {  useCallback, useState } from "react";
-import { FlatList, Image, Pressable, StyleSheet, Text, View } from "react-native";
+import { useCallback, useState } from "react";
+import { ActivityIndicator, FlatList, Image, Pressable, StyleSheet, Text, View } from "react-native";
+import type { Issue, IssueStatus } from "@/services/apis/types";
 
 const tabs = ["Submitted", "Acknowledged", "Pending", "Resolved"];
 
@@ -13,7 +14,7 @@ export default function IssuesScreen() {
      const [activeTab, setActiveTab] = useState(tabs[0])
      const navigate = useRouter()
 
-     const [issues, setIssues] = useState<Record<string, any[]>>({
+     const [issues, setIssues] = useState<Record<string, Issue[]>>({
           Submitted: [],
           Acknowledged: [],
           Pending: [],
@@ -32,9 +33,11 @@ export default function IssuesScreen() {
           Resolved: true
      });
      const [loadingMore, setLoadingMore] = useState(false);
+     const [loadingInitial, setLoadingInitial] = useState(true);
+     const [error, setError] = useState<string | null>(null);
 
      const fetchIssues = async (tabName: string, page: number = 1, isLoadMore: boolean = false) => {
-          const statusMap: Record<string, "submitted" | "acknowledged" | "pending" | "resolved"> = {
+          const statusMap: Record<string, IssueStatus> = {
                Submitted: "submitted",
                Acknowledged: "acknowledged",
                Pending: "pending",
@@ -44,24 +47,33 @@ export default function IssuesScreen() {
           const status = statusMap[tabName];
           const res = await IssueService.getMyIssues({ status, page, limit: 10 });
           
-          if (res.success) {
-               const newIssues = res.data?.data?.issues || [];
+          if (res.success && res.data) {
+               const pageData = res.data;
+               const newIssues = pageData.issues;
                setIssues(prev => ({
                     ...prev,
                     [tabName]: isLoadMore ? [...prev[tabName], ...newIssues] : newIssues
                }));
                setHasMore(prev => ({
                     ...prev,
-                    [tabName]: newIssues.length === 10
+                    [tabName]: pageData.pagination.page < pageData.pagination.totalPages
                }));
+               setPages(prev => ({ ...prev, [tabName]: pageData.pagination.page }));
+               return true;
           }
+          setError(res.error || "Unable to load issues.");
+          return false;
      };
 
-     const fetchAllInitial = async () => {
-          await Promise.all(tabs.map(tab => fetchIssues(tab, 1, false)));
-     };
-
-     useFocusEffect(useCallback(() => { fetchAllInitial(); }, []));
+     useFocusEffect(useCallback(() => {
+          const loadIssues = async () => {
+               setLoadingInitial(true);
+               setError(null);
+               await fetchIssues(activeTab, 1, false);
+               setLoadingInitial(false);
+          };
+          void loadIssues();
+     }, [activeTab]));
 
      const handleLoadMore = async () => {
           if (loadingMore || !hasMore[activeTab]) return;
@@ -69,7 +81,6 @@ export default function IssuesScreen() {
           setLoadingMore(true);
           const nextPage = pages[activeTab] + 1;
           await fetchIssues(activeTab, nextPage, true);
-          setPages(prev => ({ ...prev, [activeTab]: nextPage }));
           setLoadingMore(false);
      };
 
@@ -95,7 +106,7 @@ export default function IssuesScreen() {
           );
      }
 
-     const IndividualIssue = ({ item }: { item: any }) => {
+     const IndividualIssue = ({ item }: { item: Issue }) => {
           return (
                <Pressable style={styles.issie} onPress={() => navigate.push({ pathname: "/(tabs)/issues/details", params: { id: item._id } })}>
                     <Image source={require("@/assets/images/civic-signal.png")} resizeMode="contain" style={[styles.issueIcon]} />
@@ -108,7 +119,7 @@ export default function IssuesScreen() {
                               {item.description || 'No description'}
                          </Text>
                          <Text style={[mainStyles.normalText, { fontSize: 12, marginTop: 4 }]}>
-                              Submitted at: {formatDate(item.submittedAt)}
+                              Submitted at: {item.submittedAt ? formatDate(item.submittedAt) : "Unknown"}
                          </Text>
                     </View>
                </Pressable>
@@ -121,7 +132,8 @@ export default function IssuesScreen() {
           <View style={[mainStyles.pages]}>
                <TabSelection />
                <Text style={[mainStyles.authTitles, { textAlign: "left", fontFamily: "EBGaramondBold", marginTop: 20, marginBottom: 10 }]}>{activeTab} Issues</Text>
-               
+               {loadingInitial && <ActivityIndicator color={MainColors["Primary Blue"]} />}
+               {error && <Text style={{ color: MainColors["Error red"] }}>{error}</Text>}
                {currentData.length <= 0 ? (
                     <View style={{ flex: 0.5, justifyContent: 'center', alignItems: 'center' }}>
                          <Text style={{ fontSize: 18, textAlign: 'center', color: '#999' }}>There are no issues yet!</Text>
@@ -130,7 +142,7 @@ export default function IssuesScreen() {
                     <FlatList
                          data={currentData}
                          renderItem={({ item }) => <IndividualIssue item={item} />}
-                         keyExtractor={(item: any) => item._id}
+                         keyExtractor={(item) => item._id}
                          contentContainerStyle={{ paddingBottom: 20 }}
                          ListFooterComponent={() => (
                               hasMore[activeTab] ? (
