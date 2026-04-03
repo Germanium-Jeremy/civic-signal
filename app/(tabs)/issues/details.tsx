@@ -5,40 +5,10 @@ import { formatDate } from "@/services/apis/functions";
 import { Ionicons } from "@expo/vector-icons";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { useEffect, useState } from "react";
-import { ActivityIndicator, FlatList, Image, Pressable, ScrollView, StyleSheet, Text, View, Alert } from "react-native";
+import { ActivityIndicator, Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
 import { Image as ExpoImage } from 'expo-image';
 import { API_BASE_URL } from "@/services/apis/config";
-
-interface Issue {
-     _id: string;
-     title: string;
-     description: string;
-     category: string;
-     priority: string;
-     status: string;
-     trackingNumber: string;
-     submittedAt: string;
-     location?: {
-          address: string;
-          district?: string;
-          sector?: string;
-     };
-     photos?: Array<{
-          url: string;
-          thumbnailUrl?: string;
-     }>;
-     reportedBy?: {
-          fullName: string;
-          email: string;
-     };
-     activities?: Array<{
-          action: string;
-          description: string;
-          performedBy: string;
-          performedByModel: string;
-          timestamp: string;
-     }>;
-}
+import type { Issue } from "@/services/apis/types";
 
 export default function IssueDetailsScreen() {
      const mainStyles = useStylesGlobal()
@@ -59,8 +29,8 @@ export default function IssueDetailsScreen() {
                try {
                     setLoading(true)
                     const response = await IssueService.getIssue(id)
-                    if (response.success) {
-                         setIssue(response.data.data.issue)
+                    if (response.success && response.data) {
+                         setIssue(response.data)
                     } else {
                          setError(response.error || 'Failed to fetch issue details')
                     }
@@ -85,17 +55,7 @@ export default function IssueDetailsScreen() {
           return colors[status as keyof typeof colors] || MainColors["Neutral Gray"];
      };
 
-     const getPriorityColor = (priority: string) => {
-          const colors = {
-               low: "#32CD32",
-               medium: "#FFD700",
-               high: MainColors["Error red"],
-               urgent: MainColors["Almost Black"]
-          };
-          return colors[priority as keyof typeof colors] || MainColors["Neutral Gray"];
-     };
-
-     const MediaGallery = ({ photos }: { photos?: Array<{ url: string; thumbnailUrl?: string }> }) => {
+     const MediaGallery = ({ photos }: { photos?: { url: string; thumbnailUrl?: string }[] }) => {
           if (!photos || photos.length === 0) return null;
           
           const baseHost = API_BASE_URL.replace(/\/api\/?$/, "");
@@ -173,7 +133,7 @@ export default function IssueDetailsScreen() {
                     </View>
                     <View style={styles.infoBox}>
                          <Text style={styles.infoLabel}>PRIORITY</Text>
-                         <Text style={styles.infoValue}>{issue.priority.charAt(0).toUpperCase() + issue.priority.slice(1)}</Text>
+                          <Text style={styles.infoValue}>{issue.priority ? issue.priority.charAt(0).toUpperCase() + issue.priority.slice(1) : "Not specified"}</Text>
                     </View>
                </View>
 
@@ -185,7 +145,7 @@ export default function IssueDetailsScreen() {
                     </View>
                     <View style={[styles.metaItem, { borderLeftWidth: 1, borderLeftColor: '#DDD' }]}>
                          <Text style={styles.metaLabel}>Reported</Text>
-                         <Text style={styles.metaValue}>{formatDate(issue.submittedAt)}</Text>
+                          <Text style={styles.metaValue}>{issue.submittedAt ? formatDate(issue.submittedAt) : "Unknown"}</Text>
                     </View>
                </View>
 
