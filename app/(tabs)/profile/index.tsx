@@ -1,5 +1,4 @@
 import { MainColors } from "@/constants/theme";
-import { UserDataInterface } from "@/constants/UserInterface";
 import { useStylesGlobal } from "@/hooks/use-styles-global";
 import { AuthService } from "@/services/apis/authServices";
 import { IssueService } from "@/services/apis/issueServices";
@@ -22,14 +21,14 @@ interface UserStats {
   total: number;
   submitted: number;
   acknowledged: number;
-  pending: number;
+  inProgress: number;
   resolved: number;
 }
 
 const tabs = [
   { key: "submitted", label: "Submitted" },
   { key: "acknowledged", label: "Acknowledged" },
-  { key: "pending", label: "Pending" },
+  { key: "inProgress", label: "Pending" },
   { key: "resolved", label: "Resolved" },
 ];
 
@@ -51,7 +50,7 @@ export default function ProfileScreen() {
             total: statsResult.data.total,
             submitted: statsResult.data.submitted,
             acknowledged: statsResult.data.acknowledged || 0,
-            pending: statsResult.data.inProgress,
+            inProgress: statsResult.data.inProgress || 0,
             resolved: statsResult.data.resolved,
           });
         }
@@ -75,13 +74,10 @@ export default function ProfileScreen() {
           setLoadingLogout(true);
           try {
             const result = await AuthService.logout(true);
-            if (result.success || !result.success) {
-              // Navigate even if API fails
-              navigate.replace("/(auth)/signin");
-            }
-          } catch (error) {
-            console.error("Logout error:", error);
-            navigate.replace("/(auth)/signin"); // Still navigate on error
+            if (result.success) navigate.replace("/(auth)/signin");
+            else Alert.alert("Logout failed", result.error || "Please try again.");
+          } catch {
+            Alert.alert("Logout failed", "Please try again.");
           } finally {
             setLoadingLogout(false);
           }
@@ -94,13 +90,10 @@ export default function ProfileScreen() {
           setLoadingLogout(true);
           try {
             const result = await AuthService.logout(false);
-            if (result.success || !result.success) {
-              // Navigate even if API fails
-              navigate.replace("/(auth)/signin");
-            }
-          } catch (error) {
-            console.error("Logout error:", error);
-            navigate.replace("/(auth)/signin"); // Still navigate on error
+            if (result.success) navigate.replace("/(auth)/signin");
+            else Alert.alert("Logout failed", result.error || "Please try again.");
+          } catch {
+            Alert.alert("Logout failed", "Please try again.");
           } finally {
             setLoadingLogout(false);
           }
