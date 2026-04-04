@@ -5,9 +5,7 @@ import * as ImagePicker from "expo-image-picker";
 import * as FileSystem from "expo-file-system/legacy";
 import { MainColors } from "@/constants/theme";
 import { useStylesGlobal } from "@/hooks/use-styles-global";
-import { TokenManager } from "@/services/apis/config";
 import { AuthService } from "@/services/apis/authServices";
-import { UserDataInterface } from "@/constants/UserInterface";
 import { useUser } from "../_layout";
 
 export default function EditProfileScreen() {
@@ -79,7 +77,7 @@ export default function EditProfileScreen() {
 
                // Refresh user data from context to get updated profile image
                await refreshUser();
-               setProfileImageUrl(uploadResult.data?.data?.url || "");
+               setProfileImageUrl(uploadResult.data?.url || "");
 
                Alert.alert("Success", "Profile image updated successfully");
                router.back();
