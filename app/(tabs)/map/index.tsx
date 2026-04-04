@@ -2,10 +2,9 @@ import { MainColors } from "@/constants/theme";
 import { useStylesGlobal } from "@/hooks/use-styles-global";
 import { Ionicons } from "@expo/vector-icons";
 import { useState } from "react";
-import { Pressable, StyleSheet, Text, TextInput, View } from "react-native";
+import { Pressable, StyleSheet, TextInput, View } from "react-native";
 import MapComponent from "@/components/MapComponent";
 import MapLegend from "@/components/MapLegend";
-import { IssueService } from "@/services/apis/issueServices";
 import { useRouter } from "expo-router";
 
 interface Issue {
