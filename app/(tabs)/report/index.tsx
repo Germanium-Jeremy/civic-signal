@@ -33,7 +33,7 @@ export default function ReportScreen() {
   const [loadingLocation, setLoadingLocation] = useState(false);
   const [showCategoryModal, setShowCategoryModal] = useState(false);
   const [showPriorityModal, setShowPriorityModal] = useState(false);
-  const [lodingSubmit, setLoadingSubmit] = useState(false);
+  const [loadingSubmit, setLoadingSubmit] = useState(false);
   const [customFields, setCustomFields] = useState<Record<string, any>>({});
   const [manualAddress, setManualAddress] = useState("");
   const [manualDistrict, setManualDistrict] = useState("");
@@ -54,7 +54,7 @@ export default function ReportScreen() {
   const fetchCategories = async () => {
     const result = await IssueService.getCategories();
     if (result.success) {
-      setCategories(result.data.data.categories);
+      setCategories(result.data || []);
     } else {
       Alert.alert("Error", "Failed to load issue categories");
     }
@@ -160,14 +160,14 @@ export default function ReportScreen() {
 
       const res = await IssueService.createIssue(payload);
       setLoadingSubmit(false);
-      if (res.success && res.data?.data?.issue?._id) {
-        const issueId = res.data.data.issue._id;
+      if (res.success && res.data?._id) {
+        const issueId = res.data._id;
         navigate.push({
           pathname: "/(tabs)/report/media",
           params: { issueId },
         });
       } else {
-        if ((res as any).offline) {
+        if (res.offline) {
           await enqueueOfflineIssue(payload);
           await refreshQueueCount();
           Alert.alert(
@@ -509,7 +509,7 @@ export default function ReportScreen() {
           * Required fields
         </Text>
 
-        {lodingSubmit ? (
+        {loadingSubmit ? (
           <ActivityIndicator color={MainColors["Almost Black"]} />
         ) : (
           <MainButton
