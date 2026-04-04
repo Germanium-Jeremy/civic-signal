@@ -1,7 +1,5 @@
-import { useStylesGlobal } from "@/hooks/use-styles-global";
-import { Tabs, useRouter } from "expo-router";
-import { Image, StyleSheet, Text, View, ActivityIndicator } from "react-native";
-import { SafeAreaView } from "react-native-safe-area-context";
+import { Tabs } from "expo-router";
+import { Image, StyleSheet, Text, View } from "react-native";
 import { Ionicons } from "@expo/vector-icons"
 import { MainColors } from "@/constants/theme";
 import { UserDataInterface } from "@/constants/UserInterface";
