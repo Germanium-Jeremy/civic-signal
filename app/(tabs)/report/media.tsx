@@ -92,7 +92,8 @@ export default function MediaAttachScreen() {
                const upload = await IssueService.uploadMedia(base64Payload);
                if (!upload.success) throw new Error(upload.error || "Upload failed");
 
-               const media = upload.data.data.images; // Array of { url, mediaType, ... }
+               const media = upload.data;
+               if (!media) throw new Error("The server did not return uploaded media.");
                const patch = await IssueService.updateIssueMedia(issueId as string, media);
                if (!patch.success) throw new Error(patch.error || "Failed to attach media");
 
