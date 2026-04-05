@@ -27,10 +27,15 @@ export const TokenManager = {
           ])
      },
 
-     saveUserData: (data: any) => AsyncStorage.setItem('@user_data', JSON.stringify(data)),
-     getUserData: async () => {
+     saveUserData: <T>(data: T) => AsyncStorage.setItem('@user_data', JSON.stringify(data)),
+     getUserData: async <T = unknown>(): Promise<T | null> => {
           const data = await AsyncStorage.getItem("@user_data");
-          return data ? JSON.parse(data) : null
+          try {
+               return data ? JSON.parse(data) as T : null
+          } catch {
+               await AsyncStorage.removeItem('@user_data');
+               return null;
+          }
      },
 }
 
