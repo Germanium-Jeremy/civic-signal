@@ -1,209 +1,161 @@
+import type { UserDataInterface } from "@/constants/UserInterface";
 import api, { TokenManager } from "./config";
+import { normalizeEmail, normalizePhone, type ResetMethod } from "./authInput";
+import type { ApiResult, AuthPayload, AuthResult, Tokens } from "./types";
+
+type VerificationResponse = AuthPayload;
+
+function errorResult(error: unknown, fallback: string): ApiResult<never> {
+  const response = (error as { response?: { data?: { error?: string; message?: string; details?: string[] } } })?.response?.data;
+  return {
+    success: false,
+    error: response?.error || response?.message || (error instanceof Error ? error.message : fallback),
+    details: response?.details,
+  };
+}
+
+async function saveSession(tokens?: Tokens, user?: UserDataInterface) {
+  if (!tokens?.accessToken || !tokens.refreshToken || !user) return;
+  await TokenManager.saveTokens(tokens.accessToken, tokens.refreshToken);
+  await TokenManager.saveUserData(user);
+}
+
+function toAuthResult(payload: AuthPayload, message?: string): AuthResult {
+  return {
+    success: true,
+    data: payload,
+    message,
+    requiresVerification: payload.requiresVerification,
+    email: payload.email,
+    phone: payload.phone,
+    emailVerified: payload.emailVerified,
+    phoneVerified: payload.phoneVerified,
+  };
+}
 
 export const AuthService = {
-  register: async (data: {
-    fullName: string;
-    email: string;
-    phone: string;
-    password: string;
-  }) => {
+  async register(data: { fullName: string; email: string; phone: string; password: string }): Promise<AuthResult> {
     try {
-      const response = await api.post("/auth/register", data);
-      return { success: true, data: response.data };
-    } catch (error: any) {
-      console.warn("error during register: ", error);
-      return {
-        success: false,
-        error:
-          error.response?.data?.error || error.message || "Registration failed",
-        details: error.response?.data?.details,
-      };
+      const response = await api.post("/auth/register", {
+        ...data,
+        fullName: data.fullName.trim(),
+        email: normalizeEmail(data.email),
+        phone: normalizePhone(data.phone),
+      });
+      const body = response.data as { message?: string; user?: UserDataInterface };
+      return toAuthResult({ user: body.user, email: body.user?.email, phone: body.user?.phone }, body.message);
+    } catch (error) {
+      return errorResult(error, "Registration failed");
     }
   },
 
-  verifyEmail: async (email: string, code: string) => {
+  async verifyEmail(email: string, code: string): Promise<ApiResult<VerificationResponse>> {
     try {
-      const response = await api.post("/auth/verify-email", { email, code });
+      const response = await api.post("/auth/verify-email", { email: normalizeEmail(email), code: code.trim() });
+      const body = response.data as VerificationResponse & { message?: string };
+      await saveSession(body.tokens, body.user);
+      return { success: true, data: body, message: body.message };
+    } catch (error) {
+      return errorResult(error, "Verification failed");
+    }
+  },
 
-      // Save tokens if both verifications complete
-      if (response.data.tokens) {
-        await TokenManager.saveTokens(
-          response.data.tokens.accessToken,
-          response.data.tokens.refreshToken,
-        );
-        await TokenManager.saveUserData(response.data.user);
+  async verifyPhone(phone: string, code: string): Promise<ApiResult<VerificationResponse>> {
+    try {
+      const response = await api.post("/auth/verify-phone", { phone: normalizePhone(phone), code: code.trim() });
+      const body = response.data as VerificationResponse & { message?: string };
+      await saveSession(body.tokens, body.user);
+      return { success: true, data: body, message: body.message };
+    } catch (error) {
+      return errorResult(error, "Verification failed");
+    }
+  },
+
+  async resendEmailCode(email: string): Promise<ApiResult<never>> {
+    try {
+      const response = await api.patch("/auth/verify-email", { email: normalizeEmail(email) });
+      return { success: true, message: response.data?.message };
+    } catch (error) {
+      return errorResult(error, "Failed to resend code");
+    }
+  },
+
+  async resendPhoneCode(phone: string): Promise<ApiResult<never>> {
+    try {
+      const response = await api.patch("/auth/verify-phone", { phone: normalizePhone(phone) });
+      return { success: true, message: response.data?.message };
+    } catch (error) {
+      return errorResult(error, "Failed to resend code");
+    }
+  },
+
+  async login(email: string, password: string): Promise<AuthResult> {
+    try {
+      const response = await api.post("/auth/login", { email: normalizeEmail(email), password });
+      const body = response.data as AuthPayload & { message?: string };
+      if (!body.tokens || !body.user) return { success: false, error: "The login response did not include a session." };
+      await saveSession(body.tokens, body.user);
+      return toAuthResult(body, body.message);
+    } catch (error) {
+      const body = (error as { response?: { data?: AuthPayload & { error?: string; message?: string; details?: string[] } } })?.response?.data;
+      if (body?.requiresVerification) {
+        return {
+          success: false, error: body.error, message: body.message, details: body.details,
+          requiresVerification: true, email: body.email, phone: body.phone,
+          emailVerified: body.emailVerified, phoneVerified: body.phoneVerified,
+        };
       }
-
-      return { success: true, data: response.data };
-    } catch (error: any) {
-      console.warn("Failed to verify email: ", error);
-      return {
-        success: false,
-        error: error.response?.data?.error || "Verification failed",
-      };
+      return errorResult(error, "Login failed");
     }
   },
 
-  verifyPhone: async (phone: string, code: string) => {
-    try {
-      const response = await api.post("/auth/verify-phone", { phone, code });
-
-      // Save tokens if both verifications complete
-      if (response.data.tokens) {
-        await TokenManager.saveTokens(
-          response.data.tokens.accessToken,
-          response.data.tokens.refreshToken,
-        );
-        await TokenManager.saveUserData(response.data.user);
-      }
-
-      return { success: true, data: response.data };
-    } catch (error: any) {
-      console.warn("Failed to verify phone: ", error);
-      return {
-        success: false,
-        error: error.response?.data?.error || "Verification failed",
-      };
-    }
-  },
-
-  resendEmailCode: async (email: string) => {
-    try {
-      const response = await api.patch("/auth/verify-email", { email });
-      return { success: true, data: response.data };
-    } catch (error: any) {
-      console.warn("Failed to resend Email code: ", error);
-      return {
-        success: false,
-        error: error.response?.data?.error || "Failed to resend code",
-      };
-    }
-  },
-
-  resendPhoneCode: async (phone: string) => {
-    try {
-      const response = await api.patch("/auth/verify-phone", { phone });
-      return { success: true, data: response.data };
-    } catch (error: any) {
-      console.warn("Failed to resend phone code: ", error);
-      return {
-        success: false,
-        error: error.response?.data?.error || "Failed to resend code",
-      };
-    }
-  },
-
-  login: async (email: string, password: string) => {
-    try {
-      const response = await api.post("/auth/login", { email, password });
-
-      await TokenManager.saveTokens(
-        response.data.tokens.accessToken,
-        response.data.tokens.refreshToken
-      );
-      await TokenManager.saveUserData(response.data.user);
-
-      return { success: true, data: response.data };
-    } catch (error: any) {
-      console.warn("Failed to login: ", error);
-      return {
-        success: false,
-        error: error.response?.data?.error || error.message || "Login failed",
-        details: error.response?.data?.details,
-      };
-    }
-  },
-
-  logout: async (logoutAll: boolean = false) => {
+  async logout(logoutAll = false): Promise<ApiResult<never>> {
     try {
       const refreshToken = await TokenManager.getRefreshToken();
-      const response = await api.post("/auth/logout", {
-        refreshToken,
-        logoutAll,
-      });
-
-      // Clear local tokens
+      const response = await api.post("/auth/logout", { refreshToken, logoutAll });
       await TokenManager.clearTokens();
-      return { success: true, data: response.data };
-    } catch (error: any) {
-      console.warn("Failed to logout:", error);
-      // Still clear local tokens even if API call fails
-      await TokenManager.clearTokens();
-      return {
-        success: false,
-        error: error.response?.data?.error || "Logout failed",
-      };
+      return { success: true, message: response.data?.message };
+    } catch (error) {
+      return errorResult(error, "Logout failed");
     }
   },
 
-  isLoggedIn: async () => {
-    const token = await TokenManager.getAccessToken();
-    return !!token;
+  async isLoggedIn() { return Boolean(await TokenManager.getAccessToken()); },
+
+  async getCurrentUser(): Promise<UserDataInterface | null> {
+    return TokenManager.getUserData<UserDataInterface>();
   },
 
-  getCurrentUser: async () => {
-    return await TokenManager.getUserData();
-  },
-
-  forgotPassword: async (identifier: string, method: "email" | "phone") => {
+  async forgotPassword(identifier: string, method: ResetMethod): Promise<ApiResult<never>> {
     try {
-      const response = await api.post("/auth/forgot-password", {
-        identifier,
-        method,
-      });
-      return { success: true, message: response.data.message };
-    } catch (error: any) {
-      console.warn("Forgot password error: ", error);
-      return {
-        success: false,
-        error: error.response?.data?.error || "Failed to send reset code",
-      };
+      const value = method === "email" ? normalizeEmail(identifier) : normalizePhone(identifier);
+      const response = await api.post("/auth/forgot-password", { identifier: value, method });
+      return { success: true, message: response.data?.message };
+    } catch (error) {
+      return errorResult(error, "Failed to send reset code");
     }
   },
 
-  resetPassword: async (
-    identifier: string,
-    resetCode: string,
-    newPassword: string,
-    method: "email" | "phone",
-  ) => {
+  async resetPassword(identifier: string, resetCode: string, newPassword: string, method: ResetMethod): Promise<ApiResult<never>> {
     try {
-      const response = await api.post("/auth/reset-password", {
-        identifier,
-        resetCode,
-        newPassword,
-        method,
-      });
-      return { success: true, message: response.data.message };
-    } catch (error: any) {
-      console.warn("Reset password error: ", error);
-      return {
-        success: false,
-        error: error.response?.data?.error || "Failed to reset password",
-      };
+      const value = method === "email" ? normalizeEmail(identifier) : normalizePhone(identifier);
+      const response = await api.post("/auth/reset-password", { identifier: value, resetCode: resetCode.trim(), newPassword, method });
+      return { success: true, message: response.data?.message };
+    } catch (error) {
+      return errorResult(error, "Failed to reset password");
     }
   },
 
-  uploadProfileImage: async (image: { data: string; mimeType: string }) => {
+  async uploadProfileImage(image: { data: string; mimeType: string }): Promise<ApiResult<{ url: string }>> {
     try {
       const response = await api.post("/user/profile/upload", { image });
-
-      // Update local user data if response includes user info
-      if (response.data.data?.url) {
-        const user = await TokenManager.getUserData();
-        if (user) {
-          user.profileImage = response.data.data.url;
-          await TokenManager.saveUserData(user);
-        }
-      }
-
-      return { success: true, data: response.data };
-    } catch (error: any) {
-      console.warn("Profile image upload error: ", error);
-      return {
-        success: false,
-        error: error.response?.data?.error || "Failed to upload profile image",
-      };
+      const url = response.data?.data?.url;
+      if (typeof url !== "string") return { success: false, error: "The server did not return a profile image URL." };
+      const user = await TokenManager.getUserData<UserDataInterface>();
+      if (user) await TokenManager.saveUserData({ ...user, profileImage: url });
+      return { success: true, data: { url }, message: response.data?.message };
+    } catch (error) {
+      return errorResult(error, "Failed to upload profile image");
     }
   },
 };
