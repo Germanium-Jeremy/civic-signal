@@ -1,260 +1,149 @@
-import * as Device from "expo-device"
-import * as Application from "expo-application"
+import * as Application from "expo-application";
+import * as Device from "expo-device";
 import api, { TokenManager } from "./config";
+import type { ApiResult, Issue, IssuePage, IssueStats, IssueStatus } from "./types";
 
-export const getDeviceInfo = () => {
-     return {
-          deviceId: Device.modelId || "Unknown",
-          deviceModel: `${Device.manufacturer} ${Device.modelName}`,
-          osVersion: `${Device.osName} ${Device.osVersion}`,
-          appVersion: Application.nativeApplicationVersion || '1.0.0'
-     }
+type ApiBody = { success?: boolean; message?: string; error?: string; data?: Record<string, unknown> };
+type Media = { url: string; mediaType: "image" | "audio" | "video"; thumbnailUrl?: string; size?: number; mimeType?: string };
+
+export const getDeviceInfo = () => ({
+  deviceId: Device.modelId || "Unknown",
+  deviceModel: `${Device.manufacturer || "Unknown"} ${Device.modelName || "Device"}`,
+  osVersion: `${Device.osName || "Unknown"} ${Device.osVersion || ""}`.trim(),
+  appVersion: Application.nativeApplicationVersion || "1.0.0",
+});
+
+function errorResult(error: unknown, fallback: string): ApiResult<never> {
+  const body = (error as { response?: { data?: ApiBody } })?.response?.data;
+  return { success: false, error: body?.error || (error instanceof Error ? error.message : fallback) };
+}
+
+function validIssue(value: unknown): value is Issue {
+  return Boolean(value && typeof value === "object" && typeof (value as Issue)._id === "string" && typeof (value as Issue).category === "string");
+}
+
+function pageFromBody(body: ApiBody): IssuePage | null {
+  const data = body.data;
+  const issues = data?.issues;
+  const pagination = data?.pagination;
+  if (!Array.isArray(issues) || !issues.every(validIssue) || !pagination || typeof pagination !== "object") return null;
+  const value = pagination as IssuePage["pagination"];
+  if (![value.page, value.limit, value.total, value.totalPages].every((item) => typeof item === "number")) return null;
+  return { issues, pagination: value };
+}
+
+async function currentUserId(): Promise<string | null> {
+  const user = await TokenManager.getUserData<{ id?: string }>();
+  return typeof user?.id === "string" && user.id ? user.id : null;
 }
 
 export const IssueService = {
-     /**
-      * Get all issue categories
-      * No authentication required
-      */
-     getCategories: async () => {
-          try {
-               const response = await api.get("/issues/categories");
-               return { success: true, data: response.data };
-          } catch (error: any) {
-               return {
-                    success: false,
-                    error: error.response?.data?.error || "Failed to fetch categories",
-               };
-          }
-     },
+  async getCategories(): Promise<ApiResult<unknown[]>> {
+    try {
+      const body = (await api.get("/issues/categories")).data as ApiBody;
+      const categories = body.data?.categories;
+      return Array.isArray(categories) ? { success: true, data: categories, message: body.message } : { success: false, error: "The server returned invalid categories." };
+    } catch (error) { return errorResult(error, "Failed to fetch categories"); }
+  },
 
-     /**
-      * Append media to an existing issue
-      */
-     updateIssueMedia: async (issueId: string, media: Array<{ url: string; mediaType: 'image' | 'audio' | 'video'; thumbnailUrl?: string; size?: number; mimeType?: string }>) => {
-          try {
-               const response = await api.patch(`/issues/${issueId}`, { media });
-               return { success: true, data: response.data };
-          } catch (error: any) {
-               console.warn("Error updating issue media: ", error)
-               return {
-                    success: false,
-                    error: error.response?.data?.error || 'Failed to update issue media',
-               };
-          }
-     },
+  async updateIssueMedia(issueId: string, media: Media[]): Promise<ApiResult<Issue>> {
+    try {
+      const body = (await api.patch(`/issues/${issueId}`, { media })).data as ApiBody;
+      const issue = body.data?.issue;
+      return validIssue(issue) ? { success: true, data: issue, message: body.message } : { success: false, error: "The server returned an invalid updated issue." };
+    } catch (error) { return errorResult(error, "Failed to update issue media"); }
+  },
 
-     /**
-      * Upload media files (base64 format for mobile)
-      * Returns URLs to use in issue creation
-      */
-     uploadMedia: async (files: Array<{ data: string; mimeType: string }>) => {
-          try {
-               const response = await api.post("/issues/upload", { images: files });
-               return { success: true, data: response.data };
-          } catch (error: any) {
-               return {
-                    success: false,
-                    error: error.response?.data?.error || "Failed to upload media",
-               };
-          }
-     },
+  async uploadMedia(files: Array<{ data: string; mimeType: string }>): Promise<ApiResult<Media[]>> {
+    try {
+      const body = (await api.post("/issues/upload", { images: files })).data as ApiBody;
+      const images = body.data?.images;
+      return Array.isArray(images) ? { success: true, data: images as Media[], message: body.message } : { success: false, error: "The server returned invalid uploaded media." };
+    } catch (error) { return errorResult(error, "Failed to upload media"); }
+  },
 
-     /**
-      * Create new issue report
-      * Requires authentication
-      */
-     createIssue: async (issueData: { title?: string; description?: string; category: string; priority?: string;
-          location?: { latitude?: number; longitude?: number; address?: string; district?: string; sector?: string };
-          media?: Array<{ url: string; mediaType: 'image' | 'audio' | 'video'; thumbnailUrl?: string }>;
-          customFields?: Record<string, any>;
-          source?: 'web' | 'mobile' | 'ios' | 'android' | 'api';
-     }) => {
-          try {
-               const deviceInfo = getDeviceInfo();
+  async createIssue(issueData: {
+    title?: string; description?: string; category: string; priority?: string;
+    location?: { latitude?: number; longitude?: number; address?: string; district?: string; sector?: string };
+    media?: Media[]; customFields?: Record<string, unknown>; source?: "web" | "mobile" | "ios" | "android" | "api";
+  }): Promise<ApiResult<Issue> & { offline?: boolean; code?: string }> {
+    try {
+      const body = (await api.post("/issues", { ...issueData, deviceInfo: getDeviceInfo() })).data as ApiBody;
+      const issue = body.data?.issue;
+      return validIssue(issue) ? { success: true, data: issue, message: body.message } : { success: false, error: body.error || "The server returned an invalid issue." };
+    } catch (error) {
+      const result = errorResult(error, "Failed to create issue") as ApiResult<Issue> & { offline?: boolean; code?: string };
+      const status = (error as { response?: { status?: number } })?.response?.status;
+      if (status === 403) result.code = "DEVICE_VERIFICATION_FAILED";
+      if (status === 429) { result.error = "Daily submission limit reached (10 issues per day)"; result.code = "RATE_LIMIT_EXCEEDED"; }
+      result.offline = !status || (error instanceof Error && error.message.includes("Network Error"));
+      return result;
+    }
+  },
 
-               // Only include location if provided
-               const payload: any = { ...issueData, deviceInfo };
-               if (!issueData.location) {
-                    delete payload.location;
-               }
-               const response = await api.post("/issues", payload);
+  async getMyIssues(filters?: { status?: IssueStatus; page?: number; limit?: number }): Promise<ApiResult<IssuePage>> {
+    const userId = await currentUserId();
+    if (!userId) return { success: false, error: "User not authenticated" };
+    try {
+      const params = new URLSearchParams({ userId });
+      if (filters?.status) params.set("status", filters.status);
+      if (filters?.page) params.set("page", String(filters.page));
+      if (filters?.limit) params.set("limit", String(filters.limit));
+      const body = (await api.get(`/issues?${params.toString()}`)).data as ApiBody;
+      const page = pageFromBody(body);
+      return page ? { success: true, data: page, message: body.message } : { success: false, error: body.error || "The server returned invalid issues." };
+    } catch (error) { return errorResult(error, "Failed to fetch issues"); }
+  },
 
-               return { success: true, data: response.data };
-          } catch (error: any) {
-               const likelyOffline = !error.response || error.message?.includes("Network Error") || error.code === "ECONNABORTED";
+  async getMyStats(): Promise<ApiResult<IssueStats>> {
+    const page = await this.getMyIssues({ limit: 1000 });
+    if (!page.success || !page.data) return { success: false, error: page.error || "Failed to fetch statistics" };
+    const issues = page.data.issues;
+    return { success: true, data: {
+      total: issues.length,
+      submitted: issues.filter((issue) => issue.status === "submitted").length,
+      acknowledged: issues.filter((issue) => issue.status === "acknowledged").length,
+      inProgress: issues.filter((issue) => issue.status === "pending").length,
+      resolved: issues.filter((issue) => issue.status === "resolved").length,
+    } };
+  },
 
-               // Handle specific error cases
-               if (error.response?.status === 403) {
-                    return {
-                         success: false,
-                         error: error.response.data.error || "Device verification failed",
-                         code: "DEVICE_VERIFICATION_FAILED",
-                    };
-               }
+  async getIssue(issueId: string): Promise<ApiResult<Issue>> {
+    try {
+      const body = (await api.get(`/issues/${issueId}`)).data as ApiBody;
+      const issue = body.data?.issue;
+      return validIssue(issue) ? { success: true, data: issue, message: body.message } : { success: false, error: body.error || "The server returned an invalid issue." };
+    } catch (error) { return errorResult(error, "Failed to fetch issue details"); }
+  },
 
-               if (error.response?.status === 429) {
-                    return {
-                         success: false,
-                         error: "Daily submission limit reached (10 issues per day)",
-                         code: "RATE_LIMIT_EXCEEDED",
-                    };
-               }
+  async getIssueByTracking(trackingNumber: string): Promise<ApiResult<Issue>> {
+    try {
+      const body = (await api.get(`/issues/tracking/${trackingNumber}`)).data as ApiBody;
+      const issue = body.data?.issue;
+      return validIssue(issue) ? { success: true, data: issue, message: body.message } : { success: false, error: body.error || "The server returned an invalid issue." };
+    } catch (error) { return errorResult(error, "Failed to fetch issue"); }
+  },
 
-               return {
-                    success: false,
-                    error: error.response?.data?.error || "Failed to create issue",
-                    offline: likelyOffline,
-               };
-          }
-     },
+  async getNearbyIssues(latitude: number, longitude: number, radius = 5): Promise<ApiResult<IssuePage>> {
+    try {
+      const body = (await api.get(`/issues?latitude=${latitude}&longitude=${longitude}&radius=${radius}`)).data as ApiBody;
+      const page = pageFromBody(body);
+      return page ? { success: true, data: page, message: body.message } : { success: false, error: body.error || "The server returned invalid issues." };
+    } catch (error) { return errorResult(error, "Failed to fetch nearby issues"); }
+  },
 
-     /**
-      * Get user's own issues
-      * Optionally filter by status
-      */
-     getMyIssues: async (filters?: { status?: | "submitted" | "acknowledged" | "pending" | "resolved"; page?: number; limit?: number }) => {
-          try {
-               const user = await TokenManager.getUserData();
-               if (!user) return { success: false, error: "User not authenticated" };
+  async upvoteIssue(issueId: string): Promise<ApiResult<unknown>> {
+    try { const body = (await api.post(`/issues/${issueId}/upvote`)).data as ApiBody; return body.success === false ? { success: false, error: body.error } : { success: true, data: body.data, message: body.message }; } catch (error) { return errorResult(error, "Failed to upvote issue"); }
+  },
+  async removeUpvote(issueId: string): Promise<ApiResult<unknown>> {
+    try { const body = (await api.delete(`/issues/${issueId}/upvote`)).data as ApiBody; return body.success === false ? { success: false, error: body.error } : { success: true, data: body.data, message: body.message }; } catch (error) { return errorResult(error, "Failed to remove upvote"); }
+  },
 
-               const params = new URLSearchParams();
-               params.append("userId", user.id);
-               if (filters?.status) params.append("status", filters.status);
-               if (filters?.page) params.append("page", filters.page.toString());
-               if (filters?.limit) params.append("limit", filters.limit.toString());
-
-               const response = await api.get(`/issues?${params.toString()}`);
-               return { success: true, data: response.data };
-          } catch (error: any) {
-               return {
-                    success: false,
-                    error: error.response?.data?.error || "Failed to fetch issues",
-               };
-          }
-     },
-
-     /**
-      * Get issue statistics for user
-      */
-     getMyStats: async () => {
-          try {
-               const user = await TokenManager.getUserData();
-               if (!user) return { success: false, error: "User not authenticated" };
-
-               // Fetch all user's issues
-               const response = await api.get(`/issues?userId=${user.id}&limit=1000`);
-
-               if (!response.data.success) return { success: false, error: "Failed to fetch statistics" };
-
-               const issues = response.data.data.issues;
-
-               // Calculate statistics
-               const stats = {
-                    total: issues.length,
-                    submitted: issues.filter((i: any) => i.status === "submitted").length,
-                    acknowledged: issues.filter((i: any) => i.status === "acknowledged").length,
-                    inProgress: issues.filter((i: any) => i.status === "pending").length,
-                    resolved: issues.filter((i: any) => i.status === "resolved").length,
-               };
-
-               return { success: true, data: stats };
-          } catch (error: any) {
-               return {
-                    success: false,
-                    error: error.response?.data?.error || "Failed to fetch statistics",
-               };
-          }
-     },
-
-     /**
-      * Get single issue details by ID
-      */
-     getIssue: async (issueId: string) => {
-          try {
-               const response = await api.get(`/issues/${issueId}`);
-               return { success: true, data: response.data };
-          } catch (error: any) {
-               return {
-                    success: false,
-                    error: error.response?.data?.error || "Failed to fetch issue details",
-               };
-          }
-     },
-
-     /**
-      * Get issue by tracking number
-      */
-     getIssueByTracking: async (trackingNumber: string) => {
-          try {
-               const response = await api.get(`/issues/tracking/${trackingNumber}`);
-               return { success: true, data: response.data };
-          } catch (error: any) {
-               return {
-                    success: false,
-                    error: error.response?.data?.error || "Failed to fetch issue",
-               };
-          }
-     },
-
-     /**
-      * Get nearby issues (using geolocation)
-      */
-     getNearbyIssues: async (latitude: number, longitude: number, radius: number = 5) => {
-          try {
-               const response = await api.get(`/issues?latitude=${latitude}&longitude=${longitude}&radius=${radius}`);
-               return { success: true, data: response.data };
-          } catch (error: any) {
-               return {
-                    success: false,
-                    error: error.response?.data?.error || "Failed to fetch nearby issues",
-               };
-          }
-     },
-
-     /**
-      * Upvote an issue
-      */
-     upvoteIssue: async (issueId: string) => {
-          try {
-               const response = await api.post(`/issues/${issueId}/upvote`);
-               return { success: true, data: response.data };
-          } catch (error: any) {
-               return {
-                    success: false,
-                    error: error.response?.data?.error || "Failed to upvote issue",
-               };
-          }
-     },
-
-     /**
-      * Remove upvote from an issue
-      */
-     removeUpvote: async (issueId: string) => {
-          try {
-               const response = await api.delete(`/issues/${issueId}/upvote`);
-               return { success: true, data: response.data };
-          } catch (error: any) {
-               return {
-                    success: false,
-                    error: error.response?.data?.error || "Failed to remove upvote",
-               };
-          }
-     },
-
-     /**
-      * Get all public issues for map display
-      * No authentication required
-      */
-     getAllPublicIssues: async (page: number = 1, limit: number = 100) => {
-          try {
-               const response = await api.get(`/issues?page=${page}&limit=${limit}`);
-               return { success: true, data: response.data };
-          } catch (error: any) {
-               return {
-                    success: false,
-                    error: error.response?.data?.error || "Failed to fetch public issues",
-               };
-          }
-     },
+  async getAllPublicIssues(page = 1, limit = 100): Promise<ApiResult<IssuePage>> {
+    try {
+      const body = (await api.get(`/issues?page=${page}&limit=${limit}`)).data as ApiBody;
+      const result = pageFromBody(body);
+      return result ? { success: true, data: result, message: body.message } : { success: false, error: body.error || "The server returned invalid issues." };
+    } catch (error) { return errorResult(error, "Failed to fetch public issues"); }
+  },
 };
