@@ -1,50 +1,42 @@
-# Welcome to your Expo app 👋
+# CIVICSIGNAL
 
-This is an [Expo](https://expo.dev) project created with [`create-expo-app`](https://www.npmjs.com/package/create-expo-app).
+## PROBLEM STATEMENT
 
-## Get started
+In our community, reporting civic issues like potholes, broken streetlight, and public safety concerns is fragmented and ineffective. Citizens face three main challenges: not knowing the correct reporting channels, experiencing frustration with lack of follow-up, and having no transparency in resolution processes. This leads to unresolved community issues, citizen dissatisfaction, and inefficient government resource allocation.
 
-1. Install dependencies
+## OUR SOLUTION
 
-   ```bash
-   npm install
-   ```
+`CivicSignal` is a platform that simplifies civic reporting and creates accountability through public tracking. Our `mobile app` enables citizens to report any non-emergency civic issue in under 40 seconds using category-based reporting, automatic GPS location capture and photo documentation. Our `web based platform` enables agencies, private authorized companoes, monitor issues related to their services, organize them based on desired criterias and track resolution process. Each report receives a public tracking number with status updates, creating transparency from submission to resolution.
 
-2. Start the app
+## UNIQUE VALUE PROPOSITION
 
-   ```bash
-   npx expo start
-   ```
+We bridge the gap between citizens and local government by transforming chaotic complaints into structured actionable data. Unlike scattered social media complaints or forgotten phone calls, `CivicSignal` provides a centralized, accountable system that benefits both citizens and municipal authorities.
 
-In the output, you'll find options to open the app in a
+## IMPACT METRICS
 
-- [development build](https://docs.expo.dev/develop/development-builds/introduction/)
-- [Android emulator](https://docs.expo.dev/workflow/android-studio-emulator/)
-- [iOS simulator](https://docs.expo.dev/workflow/ios-simulator/)
-- [Expo Go](https://expo.dev/go), a limited sandbox for trying out app development with Expo
+Success will be measured by:
 
-You can start developing by editing the files inside the **app** directory. This project uses [file-based routing](https://docs.expo.dev/router/introduction).
+- 40% reduction in average issue resolution time
+- 300% increase in citizen reporting participation
+- 75% user satisfaction rate
+- Improved government efficiency metrics
 
-## Get a fresh project
+## CALL TO ACTION
 
-When you're ready, run:
+We are seeking support through this competition to launch our pilot program and demonstrate the trans-formative potential of civic technologies in creating more responsive, transparent local governments.
 
-```bash
-npm run reset-project
+# What to try it out? Web Platform <a href="https://civic-signal.vercel.app" target="_black">Web Platform</a> or download our mobile application <a href="https://expo.dev/accounts/djeremiah/projects/civic-signal/builds/2bdc2779-08eb-4d1b-a361-45eb315268d5" target="_blank">Mobile App</a>
+
+## Enterprise Runtime Configuration
+
+Add these environment variables for production-grade sessions and cache:
+
+```env
+REDIS_URL=redis://<username>:<password>@<host>:<port>
+SESSION_TTL_SECONDS=604800
+JWT_SECRET=<strong-random-secret>
+JWT_REFRESH_SECRET=<strong-random-secret>
 ```
 
-This command will move the starter code to the **app-example** directory and create a blank **app** directory where you can start developing.
-
-## Learn more
-
-To learn more about developing your project with Expo, look at the following resources:
-
-- [Expo documentation](https://docs.expo.dev/): Learn fundamentals, or go into advanced topics with our [guides](https://docs.expo.dev/guides).
-- [Learn Expo tutorial](https://docs.expo.dev/tutorial/introduction/): Follow a step-by-step tutorial where you'll create a project that runs on Android, iOS, and the web.
-
-## Join the community
-
-Join our community of developers creating universal apps.
-
-- [Expo on GitHub](https://github.com/expo/expo): View our open source platform and contribute.
-- [Discord community](https://chat.expo.dev): Chat with Expo users and ask questions.
+- `REDIS_URL`: shared Redis instance used for API response caching and server-side sessions.
+- `SESSION_TTL_SECONDS`: server session lifetime (defaults to 7 days).
