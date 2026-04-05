@@ -7,7 +7,7 @@ interface InputElementProps {
      text?: string
      isTextArea?: boolean
      isDropdown?: boolean
-     onChange?: React.Dispatch<React.SetStateAction<string>> | (() => void)
+     onChange?: (value: string) => void
      isEmail?: boolean
      autoCapitalize?: boolean
      isPhone?: boolean
@@ -20,7 +20,8 @@ export default function InputElement(props: InputElementProps) {
                <TextInput placeholder={props.placeholder} value={props.text} onChangeText={props.onChange}
                     style={[styles.inputElement, { minHeight: props.isTextArea ? 100 : 10 }]}
                     placeholderTextColor={MainColors["Primary Blue"]} multiline={props.isTextArea} numberOfLines={props.isTextArea ? 10 : 1}
-                    keyboardType={props.isEmail ? "email-address" : props.isPhone ? "phone-pad" : "ascii-capable"}
+                    keyboardType={props.isEmail ? "email-address" : props.isPhone ? "phone-pad" : "default"}
+                    autoCapitalize={props.autoCapitalize ? "sentences" : "none"}
                     secureTextEntry={props.isPassword ? true : false}
                />
           </View>
