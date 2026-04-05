@@ -1,5 +1,5 @@
-import React, { useState, useEffect, useCallback } from 'react';
-import { View, StyleSheet, Dimensions, ActivityIndicator, Text } from 'react-native';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
+import { View, StyleSheet, ActivityIndicator, Text } from 'react-native';
 import MapView, { Marker, Callout } from 'react-native-maps';
 import { Ionicons } from '@expo/vector-icons';
 import { MainColors } from '@/constants/theme';
@@ -64,15 +64,6 @@ const statusColors = {
   resolved: "#75F94C"
 };
 
-const priorityColors = {
-  low: "#4CAF50",
-  medium: "#FF9800", 
-  high: "#FF5722",
-  urgent: "#9C27B0"
-};
-
-const { width, height } = Dimensions.get('window');
-
 const MapComponent: React.FC<MapComponentProps> = ({ 
   onIssuePress, 
   searchText = "",
@@ -89,11 +80,11 @@ const MapComponent: React.FC<MapComponentProps> = ({
   const [mapReady, setMapReady] = useState(false);
   const mapRef = React.useRef<MapView>(null);
 
-  const filteredIssues = issues.filter(issue => 
+  const filteredIssues = useMemo(() => issues.filter(issue => 
     issue.title.toLowerCase().includes(searchText.toLowerCase()) ||
     issue.category.toLowerCase().includes(searchText.toLowerCase()) ||
     issue.description.toLowerCase().includes(searchText.toLowerCase())
-  );
+  ), [issues, searchText]);
 
   const fetchIssues = useCallback(async () => {
     try {
@@ -102,14 +93,14 @@ const MapComponent: React.FC<MapComponentProps> = ({
       
       const response = await IssueService.getAllPublicIssues(1, 100);
       
-      if (response?.success && response?.data?.success) {
-        const transformedIssues = response.data.data.issues.map((issue: any) => ({
+      if (response.success && response.data) {
+        const transformedIssues = response.data.issues.map((issue) => ({
           id: issue._id,
           title: issue.title || "",
           status: issue.status,
           priority: issue.priority?.toLowerCase() || 'medium',
           location: issue.location?.address || 'Unknown Location',
-          coordinates: issue.location?.type === 'Point' 
+          coordinates: issue.location?.type === 'Point' && issue.location.coordinates?.length === 2
             ? { 
                 lat: issue.location.coordinates[1], 
                 lng: issue.location.coordinates[0] 
@@ -148,7 +139,7 @@ const MapComponent: React.FC<MapComponentProps> = ({
                animated: true,
           });
      }
-  }, [mapReady, filteredIssues.length]);
+  }, [mapReady, filteredIssues]);
 
   const getMarkerColor = (issue: Issue) => {
     return statusColors[issue.status as keyof typeof statusColors] || '#999999';
