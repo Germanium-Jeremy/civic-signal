@@ -32,33 +32,87 @@ export type AuthResult = ApiResult<AuthPayload> & {
   phoneVerified?: boolean;
 };
 
-export type IssueStatus = "submitted" | "acknowledged" | "pending" | "resolved";
+export type IssueStatus = 'submitted' | 'acknowledged' | 'pending' | 'resolved' | 'closed';
+
+export interface IssueLocation {
+  type: 'Point';
+  coordinates: [number, number];
+  address?: string;
+  district?: string;
+  sector?: string;
+}
+
+export interface IssueMedia {
+  url: string;
+  thumbnailUrl?: string;
+  uploadedAt: string;
+  size: number;
+  mimeType: string;
+  mediaType: 'image' | 'audio' | 'video';
+}
 
 export interface Issue {
   _id: string;
-  title?: string;
+  tenantId: string;
+  tenantSlug?: string;
+  trackingNumber: string;
+  title: string;
   description?: string;
   category: string;
-  priority?: string;
+  categoryTemplateId?: string;
+  categoryTemplateVersion?: number;
+  priority: 'High' | 'Medium' | 'Low';
   status: IssueStatus;
-  trackingNumber?: string;
-  submittedAt?: string;
-  createdAt?: string;
-  location?: {
-    type?: string;
-    coordinates?: [number, number];
-    address?: string;
-    district?: string;
-    sector?: string;
+  location?: IssueLocation;
+  media: IssueMedia[];
+  customFields: Record<string, any>;
+  reportMarkdown?: string;
+  slaDeadline?: string;
+  slaStatus: 'within_sla' | 'at_risk' | 'breached';
+  reportedBy: string;
+  reporterDevice: {
+    deviceId: string;
+    deviceModel?: string;
+    osVersion?: string;
+    appVersion?: string;
+    registeredAt: string;
   };
-  photos?: Array<{ url: string; thumbnailUrl?: string }>;
-  activities?: Array<{
-    action: string;
+  isVerifiedReporter: boolean;
+  assignedAgency?: string;
+  assignedOfficer?: string;
+  assignedAt?: string;
+  submittedAt: string;
+  acknowledgedAt?: string;
+  resolvedAt?: string;
+  closedAt?: string;
+  activities: Array<{
+    action: IssueStatus | 'status_changed' | 'sla_breached' | 'assigned' | 'submitted';
     description: string;
     performedBy: string;
-    performedByModel: string;
+    performedByModel: 'User' | 'Agency';
     timestamp: string;
+    metadata?: Record<string, any>;
   }>;
+  workflowHistory: Array<{
+    fromStatus?: IssueStatus;
+    toStatus: IssueStatus;
+    changedAt: string;
+    changedBy: string;
+    changedByModel: 'User' | 'Agency';
+    comment?: string;
+  }>;
+  isPublic: boolean;
+  showOnMap: boolean;
+  viewCount: number;
+  upvoteCount: number;
+  upvotedBy: string[];
+  resolutionNotes?: string;
+  resolutionMedia: IssueMedia[];
+  source: 'web' | 'mobile' | 'ios' | 'android' | 'api';
+  tags?: string[];
+  metadata?: Record<string, any>;
+  createdAt: string;
+  updatedAt: string;
 }
 
 export interface IssuePage {
